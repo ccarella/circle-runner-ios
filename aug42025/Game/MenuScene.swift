@@ -17,8 +17,31 @@ class MenuScene: SKScene {
     private var hapticToggle: SKShapeNode!
     
     override func didMove(to view: SKView) {
-        backgroundColor = .black
+        // Create gradient background
+        createGradientBackground()
         setupUI()
+    }
+    
+    private func createGradientBackground() {
+        // Create gradient texture
+        let size = CGSize(width: self.size.width, height: self.size.height)
+        let topColor = CIColor(color: ColorPalette.lavender)
+        let bottomColor = CIColor(color: ColorPalette.peach)
+        
+        let filter = CIFilter(name: "CILinearGradient")!
+        filter.setValue(CIVector(x: 0, y: 0), forKey: "inputPoint0")
+        filter.setValue(CIVector(x: 0, y: size.height), forKey: "inputPoint1")
+        filter.setValue(topColor, forKey: "inputColor0")
+        filter.setValue(bottomColor, forKey: "inputColor1")
+        
+        let context = CIContext(options: nil)
+        let cgImage = context.createCGImage(filter.outputImage!, from: CGRect(origin: .zero, size: size))!
+        
+        let texture = SKTexture(cgImage: cgImage)
+        let backgroundNode = SKSpriteNode(texture: texture)
+        backgroundNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        backgroundNode.zPosition = -1
+        addChild(backgroundNode)
     }
     
     private func setupUI() {
@@ -26,7 +49,7 @@ class MenuScene: SKScene {
         titleLabel = SKLabelNode(text: "CIRCLE RUNNER")
         titleLabel.fontName = "Helvetica-Bold"
         titleLabel.fontSize = 36
-        titleLabel.fontColor = .white
+        titleLabel.fontColor = .charcoal
         titleLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 + 150)
         addChild(titleLabel)
         
@@ -35,21 +58,21 @@ class MenuScene: SKScene {
         bestScoreLabel = SKLabelNode(text: String(format: "BEST %.1fs", bestScore))
         bestScoreLabel.fontName = "Helvetica"
         bestScoreLabel.fontSize = 24
-        bestScoreLabel.fontColor = .white
+        bestScoreLabel.fontColor = .charcoal
         bestScoreLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 + 80)
         addChild(bestScoreLabel)
         
         // Play Button
         playButton = SKShapeNode(rectOf: CGSize(width: 200, height: 60), cornerRadius: 30)
-        playButton.fillColor = .white
-        playButton.strokeColor = .white
+        playButton.fillColor = .pastelCoral
+        playButton.strokeColor = .pastelCoral
         playButton.position = CGPoint(x: size.width / 2, y: size.height / 2)
         playButton.name = "playButton"
         
         let playLabel = SKLabelNode(text: "PLAY")
         playLabel.fontName = "Helvetica-Bold"
         playLabel.fontSize = 28
-        playLabel.fontColor = .black
+        playLabel.fontColor = .softWhite
         playLabel.verticalAlignmentMode = .center
         playButton.addChild(playLabel)
         
@@ -64,7 +87,7 @@ class MenuScene: SKScene {
         let reducedMotionLabel = SKLabelNode(text: "Reduced Motion")
         reducedMotionLabel.fontName = "Helvetica"
         reducedMotionLabel.fontSize = 18
-        reducedMotionLabel.fontColor = .white
+        reducedMotionLabel.fontColor = .charcoal
         reducedMotionLabel.position = CGPoint(x: size.width / 2 - 60, y: size.height / 2 - 100)
         reducedMotionLabel.horizontalAlignmentMode = .right
         addChild(reducedMotionLabel)
@@ -78,7 +101,7 @@ class MenuScene: SKScene {
         let hapticLabel = SKLabelNode(text: "Haptics")
         hapticLabel.fontName = "Helvetica"
         hapticLabel.fontSize = 18
-        hapticLabel.fontColor = .white
+        hapticLabel.fontColor = .charcoal
         hapticLabel.position = CGPoint(x: size.width / 2 - 60, y: size.height / 2 - 140)
         hapticLabel.horizontalAlignmentMode = .right
         addChild(hapticLabel)
@@ -91,12 +114,12 @@ class MenuScene: SKScene {
     
     private func createToggle(isOn: Bool) -> SKShapeNode {
         let toggle = SKShapeNode(rectOf: CGSize(width: 50, height: 30), cornerRadius: 15)
-        toggle.fillColor = isOn ? .green : .gray
+        toggle.fillColor = isOn ? .pastelMint : .pastelLilac
         toggle.strokeColor = toggle.fillColor
         
         let knob = SKShapeNode(circleOfRadius: 12)
-        knob.fillColor = .white
-        knob.strokeColor = .white
+        knob.fillColor = .softWhite
+        knob.strokeColor = .softWhite
         knob.position = CGPoint(x: isOn ? 15 : -15, y: 0)
         knob.name = "knob"
         toggle.addChild(knob)
@@ -133,7 +156,7 @@ class MenuScene: SKScene {
         UserDefaults.standard.set(isOn, forKey: "reducedMotion")
         
         // Update toggle appearance
-        reducedMotionToggle.fillColor = isOn ? .green : .gray
+        reducedMotionToggle.fillColor = isOn ? .pastelMint : .pastelLilac
         reducedMotionToggle.strokeColor = reducedMotionToggle.fillColor
         
         if let knob = reducedMotionToggle.childNode(withName: "knob") {
@@ -147,7 +170,7 @@ class MenuScene: SKScene {
         UserDefaults.standard.set(isOn, forKey: "hapticsEnabled")
         
         // Update toggle appearance
-        hapticToggle.fillColor = isOn ? .green : .gray
+        hapticToggle.fillColor = isOn ? .pastelMint : .pastelLilac
         hapticToggle.strokeColor = hapticToggle.fillColor
         
         if let knob = hapticToggle.childNode(withName: "knob") {

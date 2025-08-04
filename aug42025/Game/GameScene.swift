@@ -39,13 +39,35 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private var playerTrail: SKEmitterNode?
     
     override func didMove(to view: SKView) {
-        backgroundColor = .black
+        createGradientBackground()
         physicsWorld.gravity = CGVector(dx: 0, dy: CGFloat(GameConstants.gravity))
         physicsWorld.contactDelegate = self
         
         setupGame()
         setupHUD()
         startGame()
+    }
+    
+    private func createGradientBackground() {
+        // Create gradient texture
+        let size = CGSize(width: self.size.width, height: self.size.height)
+        let topColor = CIColor(color: ColorPalette.skyBlue)
+        let bottomColor = CIColor(color: ColorPalette.mint)
+        
+        let filter = CIFilter(name: "CILinearGradient")!
+        filter.setValue(CIVector(x: 0, y: 0), forKey: "inputPoint0")
+        filter.setValue(CIVector(x: 0, y: size.height), forKey: "inputPoint1")
+        filter.setValue(topColor, forKey: "inputColor0")
+        filter.setValue(bottomColor, forKey: "inputColor1")
+        
+        let context = CIContext(options: nil)
+        let cgImage = context.createCGImage(filter.outputImage!, from: CGRect(origin: .zero, size: size))!
+        
+        let texture = SKTexture(cgImage: cgImage)
+        let backgroundNode = SKSpriteNode(texture: texture)
+        backgroundNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        backgroundNode.zPosition = -10
+        addChild(backgroundNode)
     }
     
     private func setupGame() {
@@ -60,13 +82,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         // Ground visual
         let groundLine = SKShapeNode(rect: CGRect(x: -frame.width, y: -5, width: frame.width * 2, height: 10))
-        groundLine.fillColor = .white
+        groundLine.fillColor = .pastelGroundGreen
         groundLine.strokeColor = .clear
         ground.addChild(groundLine)
         
         // Player
         player = SKShapeNode(circleOfRadius: GameConstants.playerRadius)
-        player.fillColor = .white
+        player.fillColor = .pastelPlayerPink
         player.strokeColor = .clear
         player.position = CGPoint(x: frame.width * 0.25, y: GameConstants.groundY + GameConstants.playerRadius + 10)
         
@@ -99,7 +121,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 trail.particleSpeed = 50
                 trail.particleSpeedRange = 20
                 trail.emissionAngle = .pi
-                trail.particleColor = .white
+                trail.particleColor = .pastelPlayerPink
                 trail.targetNode = self
                 player.addChild(trail)
                 playerTrail = trail
@@ -118,7 +140,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Current score
         scoreLabel = SKLabelNode(fontNamed: "Helvetica-Bold")
         scoreLabel.fontSize = 32
-        scoreLabel.fontColor = .white
+        scoreLabel.fontColor = .charcoal
         scoreLabel.horizontalAlignmentMode = .left
         scoreLabel.position = CGPoint(x: 20, y: frame.height - 60)
         scoreLabel.text = "0.0s"
@@ -128,7 +150,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         bestScore = UserDefaults.standard.double(forKey: "bestScore")
         bestScoreLabel = SKLabelNode(fontNamed: "Helvetica")
         bestScoreLabel.fontSize = 24
-        bestScoreLabel.fontColor = .white
+        bestScoreLabel.fontColor = .charcoal
         bestScoreLabel.horizontalAlignmentMode = .right
         bestScoreLabel.position = CGPoint(x: frame.width - 20, y: frame.height - 60)
         bestScoreLabel.text = String(format: "BEST %.1f", bestScore)
@@ -217,7 +239,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             width: CGFloat.random(in: GameConstants.minObstacleWidth...GameConstants.maxObstacleWidth),
             height: CGFloat.random(in: GameConstants.minObstacleHeight...GameConstants.maxObstacleHeight)
         ))
-        obstacle.fillColor = .white
+        obstacle.fillColor = .pastelObstacleBlue
         obstacle.strokeColor = .clear
         obstacle.name = "obstacle"
         

@@ -340,9 +340,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             // Slow motion
             physicsWorld.speed = 0.3
             self.speed = 0.3
-        case 3:
-            // Toggle hitboxes
-            view?.showsPhysics.toggle()
+        // Removed physics debug toggle to prevent red X from appearing
+        // case 3:
+        //     // Toggle hitboxes
+        //     view?.showsPhysics.toggle()
         case 4:
             // Reset best score
             UserDefaults.standard.set(0.0, forKey: "bestScore")

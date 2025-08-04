@@ -23,6 +23,7 @@ class GameViewController: UIViewController {
         skView.showsFPS = true
         skView.showsNodeCount = true
         skView.showsDrawCount = true
+        skView.showsPhysics = false  // Ensure physics debug is off
         #endif
         
         skView.ignoresSiblingOrder = true

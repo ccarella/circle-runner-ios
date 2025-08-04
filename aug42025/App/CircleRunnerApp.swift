@@ -14,10 +14,20 @@ class AppDelegate: UIResponder, UIApplicationDelegate {
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
         
+        print("AppDelegate: didFinishLaunchingWithOptions")
+        
         window = UIWindow(frame: UIScreen.main.bounds)
+        window?.backgroundColor = .green // Green to debug window visibility
+        
         let viewController = GameViewController()
+        viewController.view.backgroundColor = .yellow // Yellow to debug view controller
+        
         window?.rootViewController = viewController
         window?.makeKeyAndVisible()
+        
+        print("AppDelegate: Window created and made visible")
+        print("AppDelegate: Window frame: \(window?.frame ?? .zero)")
+        print("AppDelegate: Root VC: \(window?.rootViewController)")
         
         return true
     }

@@ -10,63 +10,35 @@ import SpriteKit
 
 class GameViewController: UIViewController {
     
-    override func loadView() {
-        // Create and configure the SKView
-        let skView = SKView(frame: UIScreen.main.bounds)
-        skView.backgroundColor = .black
-        self.view = skView
-        print("GameViewController: loadView - created SKView with frame: \(skView.frame)")
-    }
-    
     override func viewDidLoad() {
         super.viewDidLoad()
         
         print("GameViewController: viewDidLoad started")
         
-        // Configure the view
-        guard let skView = self.view as? SKView else {
-            print("GameViewController: ERROR - view is not SKView")
-            return
-        }
+        // Create SKView
+        let skView = SKView(frame: view.bounds)
+        skView.backgroundColor = .red // Red background to verify view is visible
+        view.addSubview(skView)
         
-        print("GameViewController: SKView confirmed, bounds: \(skView.bounds)")
+        print("GameViewController: Created SKView with red background")
         
-        // Show debug info in debug builds
-        #if DEBUG
-        skView.showsFPS = true
-        skView.showsNodeCount = true
-        skView.showsDrawCount = true
-        skView.showsPhysics = false
-        #endif
+        // Create a simple test scene
+        let scene = SKScene(size: view.bounds.size)
+        scene.backgroundColor = .blue // Blue scene background
         
-        // Optimize rendering
-        skView.ignoresSiblingOrder = true
+        // Add a white label
+        let label = SKLabelNode(text: "TEST SCENE")
+        label.fontSize = 40
+        label.fontColor = .white
+        label.position = CGPoint(x: scene.size.width / 2, y: scene.size.height / 2)
+        scene.addChild(label)
         
-        // Create and present the menu scene
-        let scene = MenuScene(size: skView.bounds.size)
-        scene.scaleMode = .aspectFill
-        scene.backgroundColor = .black
+        print("GameViewController: Created test scene with label")
         
-        // Add a simple test to verify SKView is working
-        skView.backgroundColor = .darkGray
-        
-        print("GameViewController: Presenting MenuScene with size: \(scene.size)")
+        // Present the scene
         skView.presentScene(scene)
-    }
-    
-    override func viewDidAppear(_ animated: Bool) {
-        super.viewDidAppear(animated)
-        print("GameViewController: viewDidAppear - view frame: \(view.frame)")
-    }
-    
-    override func viewWillLayoutSubviews() {
-        super.viewWillLayoutSubviews()
         
-        // Update scene size on layout changes
-        if let skView = self.view as? SKView,
-           let scene = skView.scene {
-            scene.size = skView.bounds.size
-        }
+        print("GameViewController: Scene presented")
     }
     
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
@@ -75,9 +47,5 @@ class GameViewController: UIViewController {
     
     override var prefersStatusBarHidden: Bool {
         return true
-    }
-    
-    override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge {
-        return [.bottom]
     }
 }

@@ -24,12 +24,16 @@ class MenuScene: SKScene {
     }
     
     private func setupUI() {
+        print("MenuScene: Setting up UI elements")
+        print("MenuScene: Frame size: \(frame.size), midX: \(frame.midX), midY: \(frame.midY)")
+        
         // Title
         titleLabel = SKLabelNode(text: "CIRCLE RUNNER")
         titleLabel.fontName = "Helvetica-Bold"
         titleLabel.fontSize = 36
         titleLabel.fontColor = .white
-        titleLabel.position = CGPoint(x: frame.midX, y: frame.midY + 150)
+        titleLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 + 150)
+        print("MenuScene: Title position: \(titleLabel.position)")
         addChild(titleLabel)
         
         // Best Score
@@ -38,15 +42,16 @@ class MenuScene: SKScene {
         bestScoreLabel.fontName = "Helvetica"
         bestScoreLabel.fontSize = 24
         bestScoreLabel.fontColor = .white
-        bestScoreLabel.position = CGPoint(x: frame.midX, y: frame.midY + 80)
+        bestScoreLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 + 80)
         addChild(bestScoreLabel)
         
         // Play Button
         playButton = SKShapeNode(rectOf: CGSize(width: 200, height: 60), cornerRadius: 30)
         playButton.fillColor = .white
         playButton.strokeColor = .white
-        playButton.position = CGPoint(x: frame.midX, y: frame.midY)
+        playButton.position = CGPoint(x: size.width / 2, y: size.height / 2)
         playButton.name = "playButton"
+        print("MenuScene: Play button position: \(playButton.position)")
         
         let playLabel = SKLabelNode(text: "PLAY")
         playLabel.fontName = "Helvetica-Bold"
@@ -59,6 +64,8 @@ class MenuScene: SKScene {
         
         // Settings toggles
         setupToggles()
+        
+        print("MenuScene: UI setup complete, child count: \(children.count)")
     }
     
     private func setupToggles() {
@@ -67,12 +74,12 @@ class MenuScene: SKScene {
         reducedMotionLabel.fontName = "Helvetica"
         reducedMotionLabel.fontSize = 18
         reducedMotionLabel.fontColor = .white
-        reducedMotionLabel.position = CGPoint(x: frame.midX - 60, y: frame.midY - 100)
+        reducedMotionLabel.position = CGPoint(x: size.width / 2 - 60, y: size.height / 2 - 100)
         reducedMotionLabel.horizontalAlignmentMode = .right
         addChild(reducedMotionLabel)
         
         reducedMotionToggle = createToggle(isOn: UserDefaults.standard.bool(forKey: "reducedMotion"))
-        reducedMotionToggle.position = CGPoint(x: frame.midX - 40, y: frame.midY - 100)
+        reducedMotionToggle.position = CGPoint(x: size.width / 2 - 40, y: size.height / 2 - 100)
         reducedMotionToggle.name = "reducedMotionToggle"
         addChild(reducedMotionToggle)
         
@@ -81,12 +88,12 @@ class MenuScene: SKScene {
         hapticLabel.fontName = "Helvetica"
         hapticLabel.fontSize = 18
         hapticLabel.fontColor = .white
-        hapticLabel.position = CGPoint(x: frame.midX - 60, y: frame.midY - 140)
+        hapticLabel.position = CGPoint(x: size.width / 2 - 60, y: size.height / 2 - 140)
         hapticLabel.horizontalAlignmentMode = .right
         addChild(hapticLabel)
         
         hapticToggle = createToggle(isOn: UserDefaults.standard.bool(forKey: "hapticsEnabled", defaultValue: true))
-        hapticToggle.position = CGPoint(x: frame.midX - 40, y: frame.midY - 140)
+        hapticToggle.position = CGPoint(x: size.width / 2 - 40, y: size.height / 2 - 140)
         hapticToggle.name = "hapticToggle"
         addChild(hapticToggle)
     }

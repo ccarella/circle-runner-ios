@@ -92,6 +92,41 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         player.strokeColor = .clear
         player.position = CGPoint(x: frame.width * 0.25, y: GameConstants.groundY + GameConstants.playerRadius + 10)
         
+        // Add visual elements to show rotation
+        // Add a highlight/gradient effect
+        let highlight = SKShapeNode(circleOfRadius: GameConstants.playerRadius * 0.8)
+        highlight.fillColor = .softWhite
+        highlight.strokeColor = .clear
+        highlight.alpha = 0.3
+        highlight.position = CGPoint(x: -GameConstants.playerRadius * 0.3, y: GameConstants.playerRadius * 0.3)
+        player.addChild(highlight)
+        
+        // Add dots pattern for rotation visibility
+        let dotRadius: CGFloat = 3
+        let dotColor = UIColor(red: 1.0, green: 1.0, blue: 1.0, alpha: 0.6)
+        
+        // Center dot
+        let centerDot = SKShapeNode(circleOfRadius: dotRadius)
+        centerDot.fillColor = dotColor
+        centerDot.strokeColor = .clear
+        player.addChild(centerDot)
+        
+        // Side dots
+        let positions: [(x: CGFloat, y: CGFloat)] = [
+            (GameConstants.playerRadius * 0.6, 0),
+            (-GameConstants.playerRadius * 0.6, 0),
+            (0, GameConstants.playerRadius * 0.6),
+            (0, -GameConstants.playerRadius * 0.6)
+        ]
+        
+        for pos in positions {
+            let dot = SKShapeNode(circleOfRadius: dotRadius * 0.8)
+            dot.fillColor = dotColor
+            dot.strokeColor = .clear
+            dot.position = CGPoint(x: pos.x, y: pos.y)
+            player.addChild(dot)
+        }
+        
         player.physicsBody = SKPhysicsBody(circleOfRadius: GameConstants.playerRadius)
         player.physicsBody?.categoryBitMask = PhysicsCategory.player
         player.physicsBody?.contactTestBitMask = PhysicsCategory.obstacle | PhysicsCategory.ground
@@ -100,6 +135,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         player.physicsBody?.restitution = 0
         
         addChild(player)
+        
+        // Start rolling animation
+        startRollingAnimation()
         
         // Player trail effect
         if !UserDefaults.standard.bool(forKey: "reducedMotion") {
@@ -172,6 +210,26 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         isGrounded = true
     }
     
+    private func startRollingAnimation() {
+        // Remove any existing rotation action
+        player.removeAction(forKey: "rolling")
+        
+        // Calculate rotation based on speed and circumference
+        let circumference = 2 * .pi * GameConstants.playerRadius
+        let rotationDuration = TimeInterval(circumference / currentSpeed)
+        
+        // Create rotation action (negative for clockwise when moving right)
+        let rotate = SKAction.rotate(byAngle: -2 * .pi, duration: rotationDuration)
+        let repeatRotation = SKAction.repeatForever(rotate)
+        
+        player.run(repeatRotation, withKey: "rolling")
+    }
+    
+    private func updateRollingSpeed() {
+        // Update rolling animation when speed changes
+        startRollingAnimation()
+    }
+    
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
         guard !isGameOver else { return }
         
@@ -210,7 +268,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         scoreLabel.text = String(format: "%.1fs", currentScore)
         
         // Update speed
+        let previousSpeed = currentSpeed
         currentSpeed = min(GameConstants.startSpeed + (GameConstants.speedGainPerSecond * CGFloat(currentScore)), GameConstants.maxSpeed)
+        
+        // Update rolling animation if speed changed significantly
+        if abs(currentSpeed - previousSpeed) > 5 {
+            updateRollingSpeed()
+        }
         
         // Update spawn interval
         let spawnProgress = min(currentScore / GameConstants.spawnRampDuration, 1.0)
@@ -286,6 +350,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     private func gameOver() {
         isGameOver = true
+        
+        // Stop rolling animation
+        player.removeAction(forKey: "rolling")
         
         // Update best score
         if currentScore > bestScore {

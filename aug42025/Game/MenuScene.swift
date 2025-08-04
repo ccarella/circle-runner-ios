@@ -17,8 +17,10 @@ class MenuScene: SKScene {
     private var hapticToggle: SKShapeNode!
     
     override func didMove(to view: SKView) {
+        print("MenuScene: didMove(to:) called, size: \(size)")
         backgroundColor = .black
         setupUI()
+        print("MenuScene: setupUI completed")
     }
     
     private func setupUI() {

@@ -12,23 +12,31 @@ class GameViewController: UIViewController {
     
     override func loadView() {
         // Create and configure the SKView
-        let skView = SKView()
+        let skView = SKView(frame: UIScreen.main.bounds)
+        skView.backgroundColor = .black
         self.view = skView
+        print("GameViewController: loadView - created SKView with frame: \(skView.frame)")
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         
+        print("GameViewController: viewDidLoad started")
+        
         // Configure the view
         guard let skView = self.view as? SKView else {
+            print("GameViewController: ERROR - view is not SKView")
             return
         }
+        
+        print("GameViewController: SKView confirmed, bounds: \(skView.bounds)")
         
         // Show debug info in debug builds
         #if DEBUG
         skView.showsFPS = true
         skView.showsNodeCount = true
         skView.showsDrawCount = true
+        skView.showsPhysics = false
         #endif
         
         // Optimize rendering
@@ -37,8 +45,15 @@ class GameViewController: UIViewController {
         // Create and present the menu scene
         let scene = MenuScene(size: skView.bounds.size)
         scene.scaleMode = .aspectFill
+        scene.backgroundColor = .black
         
+        print("GameViewController: Presenting MenuScene with size: \(scene.size)")
         skView.presentScene(scene)
+    }
+    
+    override func viewDidAppear(_ animated: Bool) {
+        super.viewDidAppear(animated)
+        print("GameViewController: viewDidAppear - view frame: \(view.frame)")
     }
     
     override func viewWillLayoutSubviews() {

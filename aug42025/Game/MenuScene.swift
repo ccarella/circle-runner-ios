@@ -17,35 +17,17 @@ class MenuScene: SKScene {
     private var hapticToggle: SKShapeNode!
     
     override func didMove(to view: SKView) {
-        print("MenuScene: didMove(to:) called, size: \(size)")
-        
-        // Set anchor point to bottom-left (SpriteKit default)
-        anchorPoint = CGPoint(x: 0, y: 0)
         backgroundColor = .black
-        
-        // Add a test node to verify rendering
-        let testNode = SKShapeNode(rectOf: CGSize(width: 100, height: 100))
-        testNode.fillColor = .red
-        testNode.position = CGPoint(x: 50, y: 50)
-        testNode.zPosition = 100
-        addChild(testNode)
-        print("MenuScene: Added red test square at (50, 50)")
-        
         setupUI()
-        print("MenuScene: setupUI completed")
     }
     
     private func setupUI() {
-        print("MenuScene: Setting up UI elements")
-        print("MenuScene: Frame size: \(frame.size), midX: \(frame.midX), midY: \(frame.midY)")
-        
         // Title
         titleLabel = SKLabelNode(text: "CIRCLE RUNNER")
         titleLabel.fontName = "Helvetica-Bold"
         titleLabel.fontSize = 36
         titleLabel.fontColor = .white
         titleLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 + 150)
-        print("MenuScene: Title position: \(titleLabel.position)")
         addChild(titleLabel)
         
         // Best Score
@@ -63,7 +45,6 @@ class MenuScene: SKScene {
         playButton.strokeColor = .white
         playButton.position = CGPoint(x: size.width / 2, y: size.height / 2)
         playButton.name = "playButton"
-        print("MenuScene: Play button position: \(playButton.position)")
         
         let playLabel = SKLabelNode(text: "PLAY")
         playLabel.fontName = "Helvetica-Bold"
@@ -76,8 +57,6 @@ class MenuScene: SKScene {
         
         // Settings toggles
         setupToggles()
-        
-        print("MenuScene: UI setup complete, child count: \(children.count)")
     }
     
     private func setupToggles() {

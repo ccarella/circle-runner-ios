@@ -13,32 +13,35 @@ class GameViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
         
-        print("GameViewController: viewDidLoad started")
-        
         // Create SKView
         let skView = SKView(frame: view.bounds)
-        skView.backgroundColor = .red // Red background to verify view is visible
+        skView.autoresizingMask = [.flexibleWidth, .flexibleHeight]
         view.addSubview(skView)
         
-        print("GameViewController: Created SKView with red background")
+        // Configure SKView
+        #if DEBUG
+        skView.showsFPS = true
+        skView.showsNodeCount = true
+        skView.showsDrawCount = true
+        #endif
         
-        // Create a simple test scene
-        let scene = SKScene(size: view.bounds.size)
-        scene.backgroundColor = .blue // Blue scene background
+        skView.ignoresSiblingOrder = true
         
-        // Add a white label
-        let label = SKLabelNode(text: "TEST SCENE")
-        label.fontSize = 40
-        label.fontColor = .white
-        label.position = CGPoint(x: scene.size.width / 2, y: scene.size.height / 2)
-        scene.addChild(label)
+        // Create and present the menu scene
+        let scene = MenuScene(size: skView.bounds.size)
+        scene.scaleMode = .aspectFill
         
-        print("GameViewController: Created test scene with label")
-        
-        // Present the scene
         skView.presentScene(scene)
+    }
+    
+    override func viewWillLayoutSubviews() {
+        super.viewWillLayoutSubviews()
         
-        print("GameViewController: Scene presented")
+        // Update scene size on layout changes
+        if let skView = view.subviews.first as? SKView,
+           let scene = skView.scene {
+            scene.size = skView.bounds.size
+        }
     }
     
     override var supportedInterfaceOrientations: UIInterfaceOrientationMask {
@@ -47,5 +50,9 @@ class GameViewController: UIViewController {
     
     override var prefersStatusBarHidden: Bool {
         return true
+    }
+    
+    override var preferredScreenEdgesDeferringSystemGestures: UIRectEdge {
+        return [.bottom]
     }
 }

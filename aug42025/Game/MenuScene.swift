@@ -18,7 +18,19 @@ class MenuScene: SKScene {
     
     override func didMove(to view: SKView) {
         print("MenuScene: didMove(to:) called, size: \(size)")
+        
+        // Set anchor point to bottom-left (SpriteKit default)
+        anchorPoint = CGPoint(x: 0, y: 0)
         backgroundColor = .black
+        
+        // Add a test node to verify rendering
+        let testNode = SKShapeNode(rectOf: CGSize(width: 100, height: 100))
+        testNode.fillColor = .red
+        testNode.position = CGPoint(x: 50, y: 50)
+        testNode.zPosition = 100
+        addChild(testNode)
+        print("MenuScene: Added red test square at (50, 50)")
+        
         setupUI()
         print("MenuScene: setupUI completed")
     }

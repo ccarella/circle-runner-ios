@@ -47,6 +47,9 @@ class GameViewController: UIViewController {
         scene.scaleMode = .aspectFill
         scene.backgroundColor = .black
         
+        // Add a simple test to verify SKView is working
+        skView.backgroundColor = .darkGray
+        
         print("GameViewController: Presenting MenuScene with size: \(scene.size)")
         skView.presentScene(scene)
     }

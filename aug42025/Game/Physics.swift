@@ -17,7 +17,7 @@ struct PhysicsCategory {
 struct GameConstants {
     // Physics
     static let gravity: Float = -9.8 * 6.0  // Strong gravity for tight control
-    static let jumpImpulse: CGFloat = 200   // Just enough to clear max obstacle (120) with small margin
+    static let jumpImpulse: CGFloat = 50    // Very small jumps as requested
     static let playerRadius: CGFloat = 16
     static let groundY: CGFloat = 80
     
@@ -36,8 +36,8 @@ struct GameConstants {
     static let spawnRampDuration: TimeInterval = 60.0
     
     // Obstacles
-    static let minObstacleHeight: CGFloat = 32
-    static let maxObstacleHeight: CGFloat = 120
+    static let minObstacleHeight: CGFloat = 20
+    static let maxObstacleHeight: CGFloat = 30  // Reduced from 120 to match tiny jumps
     static let minObstacleWidth: CGFloat = 24
     static let maxObstacleWidth: CGFloat = 64
     

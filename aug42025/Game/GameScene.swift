@@ -8,6 +8,7 @@
 import SpriteKit
 import GameplayKit
 
+@MainActor
 class GameScene: SKScene, SKPhysicsContactDelegate {
     
     // Nodes

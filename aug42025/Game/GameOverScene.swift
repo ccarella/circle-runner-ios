@@ -7,6 +7,7 @@
 
 import SpriteKit
 
+@MainActor
 class GameOverScene: SKScene {
     
     var score: TimeInterval = 0

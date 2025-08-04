@@ -7,6 +7,7 @@
 
 import SpriteKit
 
+@MainActor
 class MenuScene: SKScene {
     
     private var playButton: SKShapeNode!

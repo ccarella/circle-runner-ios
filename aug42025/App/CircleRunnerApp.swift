@@ -10,26 +10,20 @@ import UIKit
 @main
 class AppDelegate: UIResponder, UIApplicationDelegate {
     
-    var window: UIWindow?
-    
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
-        
         print("AppDelegate: didFinishLaunchingWithOptions")
-        
-        window = UIWindow(frame: UIScreen.main.bounds)
-        window?.backgroundColor = .green // Green to debug window visibility
-        
-        let viewController = GameViewController()
-        viewController.view.backgroundColor = .yellow // Yellow to debug view controller
-        
-        window?.rootViewController = viewController
-        window?.makeKeyAndVisible()
-        
-        print("AppDelegate: Window created and made visible")
-        print("AppDelegate: Window frame: \(window?.frame ?? .zero)")
-        print("AppDelegate: Root VC: \(window?.rootViewController)")
-        
         return true
+    }
+    
+    // MARK: UISceneSession Lifecycle
+    
+    func application(_ application: UIApplication, configurationForConnecting connectingSceneSession: UISceneSession, options: UIScene.ConnectionOptions) -> UISceneConfiguration {
+        print("AppDelegate: configurationForConnecting")
+        return UISceneConfiguration(name: "Default Configuration", sessionRole: connectingSceneSession.role)
+    }
+    
+    func application(_ application: UIApplication, didDiscardSceneSessions sceneSessions: Set<UISceneSession>) {
+        print("AppDelegate: didDiscardSceneSessions")
     }
     
     func applicationWillResignActive(_ application: UIApplication) {

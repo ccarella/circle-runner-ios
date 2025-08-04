@@ -111,7 +111,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
             } else {
                 // Create trail programmatically if file doesn't exist
                 let trail = SKEmitterNode()
-                trail.particleTexture = SKTexture(imageNamed: "spark")
+                // Create a small circle texture for particles
+                let particle = SKShapeNode(circleOfRadius: 4)
+                particle.fillColor = .white
+                particle.strokeColor = .clear
+                let texture = SKView().texture(from: particle)
+                trail.particleTexture = texture
                 trail.particleBirthRate = 100
                 trail.particleLifetime = 0.5
                 trail.particleScale = 0.2
@@ -122,6 +127,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
                 trail.particleSpeedRange = 20
                 trail.emissionAngle = .pi
                 trail.particleColor = .pastelPlayerPink
+                trail.particleColorBlendFactor = 1.0
                 trail.targetNode = self
                 player.addChild(trail)
                 playerTrail = trail

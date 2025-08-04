@@ -16,8 +16,8 @@ struct PhysicsCategory {
 
 struct GameConstants {
     // Physics
-    static let gravity: Float = -9.8 * 3.5
-    static let jumpImpulse: CGFloat = 270
+    static let gravity: Float = -9.8 * 6.0  // Strong gravity for tight control
+    static let jumpImpulse: CGFloat = 200   // Just enough to clear max obstacle (120) with small margin
     static let playerRadius: CGFloat = 16
     static let groundY: CGFloat = 80
     

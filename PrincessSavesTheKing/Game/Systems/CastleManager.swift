@@ -19,8 +19,8 @@ protocol CastleManagerDelegate: AnyObject {
 class CastleManager {
     
     // Constants
-    static let castleInterval: TimeInterval = 300.0 // 5 minutes = 300 seconds
-    static let approachWarningTime: TimeInterval = 30.0 // Start showing approach indicators 30 seconds before
+    static let castleInterval: TimeInterval = 30.0 // 30 seconds per level
+    static let approachWarningTime: TimeInterval = 10.0 // Start showing approach indicators 10 seconds before
     static let totalCastles = 10
     
     // Properties

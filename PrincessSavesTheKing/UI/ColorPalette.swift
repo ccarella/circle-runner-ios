@@ -31,6 +31,10 @@ struct ColorPalette {
     
     // Ground Color
     static let groundGreen = UIColor(red: 0.65, green: 0.82, blue: 0.65, alpha: 1.0)  // #A6D1A6
+    
+    // Castle/Accent Colors
+    static let accentOrange = UIColor(red: 1.0, green: 0.65, blue: 0.40, alpha: 1.0)  // #FFA666
+    static let emerald = UIColor(red: 0.40, green: 0.75, blue: 0.50, alpha: 1.0)      // #66BF80
 }
 
 // SKColor extensions for easy use in SpriteKit
@@ -48,4 +52,23 @@ extension SKColor {
     static let pastelPlayerPink = SKColor(cgColor: ColorPalette.playerPink.cgColor)
     static let pastelObstacleBlue = SKColor(cgColor: ColorPalette.obstacleBlue.cgColor)
     static let pastelGroundGreen = SKColor(cgColor: ColorPalette.groundGreen.cgColor)
+    static let pastelAccentOrange = SKColor(cgColor: ColorPalette.accentOrange.cgColor)
+    static let pastelEmerald = SKColor(cgColor: ColorPalette.emerald.cgColor)
+}
+
+// Helper extensions
+extension UIColor {
+    func darker(by percentage: CGFloat = 0.3) -> UIColor {
+        var hue: CGFloat = 0
+        var saturation: CGFloat = 0
+        var brightness: CGFloat = 0
+        var alpha: CGFloat = 0
+        
+        self.getHue(&hue, saturation: &saturation, brightness: &brightness, alpha: &alpha)
+        
+        return UIColor(hue: hue,
+                      saturation: saturation,
+                      brightness: brightness * (1 - percentage),
+                      alpha: alpha)
+    }
 }

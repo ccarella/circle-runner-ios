@@ -9,7 +9,7 @@ import SpriteKit
 import GameplayKit
 
 @MainActor
-class GameScene: SKScene, SKPhysicsContactDelegate {
+class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
     
     // Nodes
     private var princess: Princess!
@@ -26,6 +26,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     private var isGameOver = false
     private var currentSpeed: CGFloat = GameConstants.startSpeed
     private var lastMilestone: Int = 0
+    private var isGamePaused = false
+    
+    // Castle system
+    private var castleManager: CastleManager!
+    private var castleApproachIndicator: SKNode?
+    private var castleTimeLabel: SKLabelNode!
+    private var castleProgressLabel: SKLabelNode!
     
     // Jump mechanics
     private var jumpBufferTime: TimeInterval = 0
@@ -42,6 +49,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         
         setupGame()
         setupHUD()
+        setupCastleManager()
         startGame()
     }
     
@@ -123,6 +131,24 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         bestScoreLabel.position = CGPoint(x: frame.width - 20, y: frame.height - 60)
         bestScoreLabel.text = String(format: "Best: %.1fs", bestScore)
         hudNode.addChild(bestScoreLabel)
+        
+        // Castle progress label
+        castleProgressLabel = SKLabelNode(fontNamed: "Noteworthy-Light")
+        castleProgressLabel.fontSize = 20
+        castleProgressLabel.fontColor = .charcoal
+        castleProgressLabel.horizontalAlignmentMode = .center
+        castleProgressLabel.position = CGPoint(x: frame.midX, y: frame.height - 60)
+        castleProgressLabel.text = "Castle 1 of 10"
+        hudNode.addChild(castleProgressLabel)
+        
+        // Castle time label (hidden until approaching)
+        castleTimeLabel = SKLabelNode(fontNamed: "Noteworthy-Bold")
+        castleTimeLabel.fontSize = 28
+        castleTimeLabel.fontColor = .pastelAccentOrange
+        castleTimeLabel.horizontalAlignmentMode = .center
+        castleTimeLabel.position = CGPoint(x: frame.midX, y: frame.height - 100)
+        castleTimeLabel.alpha = 0
+        hudNode.addChild(castleTimeLabel)
     }
     
     
@@ -136,8 +162,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         lastMilestone = 0
     }
     
+    private func setupCastleManager() {
+        castleManager = CastleManager()
+        castleManager.delegate = self
+    }
+    
     override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
-        guard !isGameOver else { return }
+        guard !isGameOver && !isGamePaused else { return }
         
         let currentTime = CACurrentMediaTime()
         
@@ -157,7 +188,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
     
     
     override func update(_ currentTime: TimeInterval) {
-        guard !isGameOver else { return }
+        guard !isGameOver && !isGamePaused else { return }
         
         // Initialize game start time
         if gameStartTime == 0 {
@@ -167,6 +198,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         // Update score
         currentScore = currentTime - gameStartTime
         scoreLabel.text = String(format: "%.1fs", currentScore)
+        
+        // Update castle manager
+        let frameDelta = 1.0 / 60.0 // Assuming 60 FPS
+        castleManager.update(deltaTime: frameDelta)
+        
+        // Update castle progress display
+        castleProgressLabel.text = castleManager.currentCastleDescription
         
         // Check for milestone celebrations (every 10 seconds)
         let currentMilestone = Int(currentScore) / 10
@@ -198,9 +236,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
         
         // Move obstacles
-        let deltaTime = 1.0 / 60.0 // Assuming 60 FPS
+        let frameDuration = 1.0 / 60.0 // Assuming 60 FPS
         obstacleContainer.enumerateChildNodes(withName: "obstacle") { node, _ in
-            node.position.x -= self.currentSpeed * CGFloat(deltaTime)
+            node.position.x -= self.currentSpeed * CGFloat(frameDuration)
             
             // Remove off-screen obstacles
             if node.position.x < -100 {
@@ -362,4 +400,114 @@ class GameScene: SKScene, SKPhysicsContactDelegate {
         }
     }
     #endif
+    
+    // MARK: - Castle Manager Delegate
+    
+    func castleManager(_ manager: CastleManager, isApproachingCastle castle: Int, timeRemaining: TimeInterval) {
+        // Show time remaining
+        castleTimeLabel.text = "Castle in \(manager.timeToNextCastleString)"
+        
+        // Fade in the time label if not visible
+        if castleTimeLabel.alpha == 0 {
+            castleTimeLabel.run(SKAction.fadeIn(withDuration: 0.5))
+            
+            // Create approach visual indicator
+            createCastleApproachIndicator()
+        }
+        
+        // Pulse the time label
+        if timeRemaining < 10 && castleTimeLabel.action(forKey: "pulse") == nil {
+            let pulse = SKAction.sequence([
+                SKAction.scale(to: 1.1, duration: 0.3),
+                SKAction.scale(to: 1.0, duration: 0.3)
+            ])
+            castleTimeLabel.run(SKAction.repeatForever(pulse), withKey: "pulse")
+        }
+    }
+    
+    func castleManager(_ manager: CastleManager, didReachCastle castle: Int) {
+        // Pause the game
+        isGamePaused = true
+        physicsWorld.speed = 0
+        
+        // Hide approach indicators
+        castleTimeLabel.removeAllActions()
+        castleTimeLabel.run(SKAction.fadeOut(withDuration: 0.3))
+        castleApproachIndicator?.run(SKAction.sequence([
+            SKAction.fadeOut(withDuration: 0.3),
+            SKAction.removeFromParent()
+        ]))
+        castleApproachIndicator = nil
+        
+        // Show castle scene
+        let castleScene = CastleScene(size: size)
+        castleScene.castleNumber = castle
+        castleScene.scaleMode = scaleMode
+        castleScene.onContinue = { [weak self] in
+            self?.resumeFromCastle()
+        }
+        
+        let transition = SKTransition.fade(withDuration: 0.5)
+        view?.presentScene(castleScene, transition: transition)
+    }
+    
+    func castleManagerDidUpdateProgress(_ manager: CastleManager) {
+        // Update any UI elements if needed
+        if !manager.isApproachingCastle {
+            castleTimeLabel.removeAllActions()
+            castleTimeLabel.run(SKAction.fadeOut(withDuration: 0.5))
+            castleApproachIndicator?.run(SKAction.sequence([
+                SKAction.fadeOut(withDuration: 0.5),
+                SKAction.removeFromParent()
+            ]))
+            castleApproachIndicator = nil
+        }
+    }
+    
+    private func createCastleApproachIndicator() {
+        guard castleApproachIndicator == nil else { return }
+        
+        // Create a subtle vignette effect
+        let indicator = SKNode()
+        
+        // Top gradient
+        let topGradient = SKSpriteNode(color: .pastelAccentOrange, size: CGSize(width: frame.width, height: 100))
+        topGradient.anchorPoint = CGPoint(x: 0.5, y: 1)
+        topGradient.position = CGPoint(x: frame.midX, y: frame.height)
+        topGradient.alpha = 0.2
+        indicator.addChild(topGradient)
+        
+        // Add some sparkles
+        for _ in 0..<5 {
+            let sparkle = SKShapeNode(circleOfRadius: 3)
+            sparkle.fillColor = .white
+            sparkle.strokeColor = .clear
+            sparkle.position = CGPoint(
+                x: CGFloat.random(in: 0...frame.width),
+                y: CGFloat.random(in: frame.height*0.7...frame.height)
+            )
+            sparkle.alpha = 0
+            indicator.addChild(sparkle)
+            
+            // Animate sparkles
+            let fadeIn = SKAction.fadeAlpha(to: 0.8, duration: 0.5)
+            let fadeOut = SKAction.fadeOut(withDuration: 0.5)
+            let wait = SKAction.wait(forDuration: CGFloat.random(in: 1...3))
+            sparkle.run(SKAction.repeatForever(SKAction.sequence([wait, fadeIn, fadeOut])))
+        }
+        
+        indicator.alpha = 0
+        indicator.run(SKAction.fadeIn(withDuration: 1.0))
+        
+        castleApproachIndicator = indicator
+        addChild(indicator)
+    }
+    
+    private func resumeFromCastle() {
+        // Return to game scene
+        let gameScene = GameScene(size: size)
+        gameScene.scaleMode = scaleMode
+        let transition = SKTransition.fade(withDuration: 0.5)
+        view?.presentScene(gameScene, transition: transition)
+    }
 }

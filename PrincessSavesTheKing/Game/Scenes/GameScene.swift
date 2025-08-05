@@ -22,11 +22,12 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
     // Game state
     private var gameStartTime: TimeInterval = 0
     private var currentScore: TimeInterval = 0
-    private var bestScore: TimeInterval = 0
+    var bestScore: TimeInterval = 0
     private var isGameOver = false
     private var currentSpeed: CGFloat = GameConstants.startSpeed
     private var lastMilestone: Int = 0
-    private var isGamePaused = false
+    var isGamePaused = false
+    var currentLevel: Int = 1
     
     // Powerup state
     private var isInvincible = false
@@ -36,10 +37,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
     private var currentStar: Star?
     
     // Castle system
-    private var castleManager: CastleManager!
-    private var castleApproachIndicator: SKNode?
-    private var castleTimeLabel: SKLabelNode!
-    private var castleProgressLabel: SKLabelNode!
+    var castleManager: CastleManager!
+    var castleApproachIndicator: SKNode?
+    var castleTimeLabel: SKLabelNode!
+    var castleProgressLabel: SKLabelNode!
     
     // Jump mechanics
     private var jumpBufferTime: TimeInterval = 0
@@ -177,7 +178,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         currentStar = nil
     }
     
-    private func setupCastleManager() {
+    func setupCastleManager() {
         castleManager = CastleManager()
         castleManager.delegate = self
     }
@@ -325,16 +326,47 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         let obstacle = SKSpriteNode(texture: rockTexture)
         obstacle.name = "obstacle"
         
-        // Make rocks 20x smaller (scale of 0.05)
+        // Determine rock size based on level
         let baseScale: CGFloat = 0.05
-        // Add some variety in size
-        let scale = baseScale * CGFloat.random(in: 0.8...1.2)
+        let scale: CGFloat
+        
+        switch currentLevel {
+        case 1:
+            // Level 1: Only small rocks
+            scale = baseScale * CGFloat.random(in: 0.8...1.0)
+        case 2:
+            // Level 2: Small and medium rocks
+            let rockType = Int.random(in: 0...1)
+            if rockType == 0 {
+                // Small rock
+                scale = baseScale * CGFloat.random(in: 0.8...1.0)
+            } else {
+                // Medium rock
+                scale = baseScale * CGFloat.random(in: 1.2...1.5)
+            }
+        default:
+            // Level 3+: All rock sizes (small, medium, large)
+            let rockType = Int.random(in: 0...2)
+            switch rockType {
+            case 0:
+                // Small rock
+                scale = baseScale * CGFloat.random(in: 0.8...1.0)
+            case 1:
+                // Medium rock
+                scale = baseScale * CGFloat.random(in: 1.2...1.5)
+            default:
+                // Large rock
+                scale = baseScale * CGFloat.random(in: 1.8...2.2)
+            }
+        }
+        
         obstacle.setScale(scale)
         
-        // Position the rock 5px lower than ground line
+        // Position rocks to sit on the ground
+        // Rocks should appear slightly below the princess's feet
         obstacle.position = CGPoint(
             x: frame.width + 50,
-            y: GameConstants.groundY + (obstacle.size.height / 2) - 5
+            y: GameConstants.groundY + (obstacle.size.height / 2) - 10
         )
         
         // Create physics body based on rectangle (simpler than texture for small rocks)
@@ -586,7 +618,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         addChild(indicator)
     }
     
-    private func resumeFromCastle() {
+    func resumeFromCastle() {
         // Resume the game instead of creating a new scene
         isGamePaused = false
         physicsWorld.speed = 1.0
@@ -615,7 +647,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         }
     }
     
-    private func showEndingScene() {
+    func showEndingScene() {
         // Show ending/credits scene
         let endingScene = EndingScene(size: size)
         endingScene.scaleMode = scaleMode

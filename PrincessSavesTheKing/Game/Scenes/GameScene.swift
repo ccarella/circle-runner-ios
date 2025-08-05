@@ -1,0 +1,365 @@
+//
+//  GameScene.swift
+//  PrincessSavesTheKing
+//
+//  Created by Chris Carella on 8/4/25.
+//
+
+import SpriteKit
+import GameplayKit
+
+@MainActor
+class GameScene: SKScene, SKPhysicsContactDelegate {
+    
+    // Nodes
+    private var princess: Princess!
+    private var ground: SKNode!
+    private var obstacleContainer: SKNode!
+    private var hudNode: SKNode!
+    private var scoreLabel: SKLabelNode!
+    private var bestScoreLabel: SKLabelNode!
+    
+    // Game state
+    private var gameStartTime: TimeInterval = 0
+    private var currentScore: TimeInterval = 0
+    private var bestScore: TimeInterval = 0
+    private var isGameOver = false
+    private var currentSpeed: CGFloat = GameConstants.startSpeed
+    private var lastMilestone: Int = 0
+    
+    // Jump mechanics
+    private var jumpBufferTime: TimeInterval = 0
+    
+    // Spawning
+    private var lastSpawnTime: TimeInterval = 0
+    private var currentSpawnInterval: TimeInterval = GameConstants.initialSpawnInterval
+    
+    
+    override func didMove(to view: SKView) {
+        createGradientBackground()
+        physicsWorld.gravity = CGVector(dx: 0, dy: CGFloat(GameConstants.gravity))
+        physicsWorld.contactDelegate = self
+        
+        setupGame()
+        setupHUD()
+        startGame()
+    }
+    
+    private func createGradientBackground() {
+        // Use the background image from Art/Environment
+        let backgroundTexture = SKTexture(imageNamed: "Background")
+        backgroundTexture.filteringMode = .linear // Use linear for background to avoid pixelation
+        
+        let backgroundNode = SKSpriteNode(texture: backgroundTexture)
+        backgroundNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        backgroundNode.zPosition = -10
+        
+        // Scale to fill the screen while maintaining aspect ratio
+        let textureAspectRatio = backgroundTexture.size().width / backgroundTexture.size().height
+        let screenAspectRatio = size.width / size.height
+        
+        if textureAspectRatio > screenAspectRatio {
+            // Texture is wider than screen, fit by height
+            backgroundNode.size.height = size.height
+            backgroundNode.size.width = size.height * textureAspectRatio
+        } else {
+            // Texture is taller than screen, fit by width
+            backgroundNode.size.width = size.width
+            backgroundNode.size.height = size.width / textureAspectRatio
+        }
+        
+        addChild(backgroundNode)
+    }
+    
+    private func setupGame() {
+        // Ground
+        ground = SKNode()
+        ground.position = CGPoint(x: frame.midX, y: GameConstants.groundY)
+        ground.physicsBody = SKPhysicsBody(rectangleOf: CGSize(width: frame.width * 2, height: 10))
+        ground.physicsBody?.isDynamic = false
+        ground.physicsBody?.categoryBitMask = PhysicsCategory.ground
+        ground.physicsBody?.contactTestBitMask = PhysicsCategory.player
+        addChild(ground)
+        
+        // Ground visual - removed to keep clean aesthetic
+        // let groundLine = SKShapeNode(rect: CGRect(x: -frame.width, y: -2, width: frame.width * 2, height: 4))
+        // groundLine.fillColor = UIColor(red: 0.6, green: 0.8, blue: 0.6, alpha: 0.5) // Semi-transparent green
+        // groundLine.strokeColor = .clear
+        // ground.addChild(groundLine)
+        
+        // Create Princess entity
+        princess = Princess()
+        princess.position = CGPoint(x: frame.width * 0.15, y: GameConstants.groundY)
+        princess.updateTrailTarget(self)
+        addChild(princess)
+        
+        // Start in idle state until game begins
+        princess.setState(.idle)
+        
+        // Obstacle container
+        obstacleContainer = SKNode()
+        addChild(obstacleContainer)
+    }
+    
+    private func setupHUD() {
+        hudNode = SKNode()
+        addChild(hudNode)
+        
+        // Current score
+        scoreLabel = SKLabelNode(fontNamed: "Noteworthy-Bold")
+        scoreLabel.fontSize = 32
+        scoreLabel.fontColor = .charcoal
+        scoreLabel.horizontalAlignmentMode = .left
+        scoreLabel.position = CGPoint(x: 20, y: frame.height - 60)
+        scoreLabel.text = "0.0s"
+        hudNode.addChild(scoreLabel)
+        
+        // Best score
+        bestScore = UserDefaults.standard.double(forKey: "bestScore")
+        bestScoreLabel = SKLabelNode(fontNamed: "Noteworthy-Light")
+        bestScoreLabel.fontSize = 22
+        bestScoreLabel.fontColor = .charcoal
+        bestScoreLabel.horizontalAlignmentMode = .right
+        bestScoreLabel.position = CGPoint(x: frame.width - 20, y: frame.height - 60)
+        bestScoreLabel.text = String(format: "Best: %.1fs", bestScore)
+        hudNode.addChild(bestScoreLabel)
+    }
+    
+    
+    private func startGame() {
+        gameStartTime = 0
+        currentScore = 0
+        isGameOver = false
+        currentSpeed = GameConstants.startSpeed
+        currentSpawnInterval = GameConstants.initialSpawnInterval
+        princess.isGrounded = true
+        lastMilestone = 0
+    }
+    
+    override func touchesBegan(_ touches: Set<UITouch>, with event: UIEvent?) {
+        guard !isGameOver else { return }
+        
+        let currentTime = CACurrentMediaTime()
+        
+        // Start the game on first tap if not started
+        if gameStartTime == 0 {
+            princess.setState(.running)
+        }
+        
+        // Check if we can jump (grounded or within coyote time)
+        if princess.isGrounded || (currentTime - princess.lastGroundContactTime) <= GameConstants.coyoteTime {
+            princess.jump()
+        } else {
+            // Store jump in buffer
+            jumpBufferTime = currentTime
+        }
+    }
+    
+    
+    override func update(_ currentTime: TimeInterval) {
+        guard !isGameOver else { return }
+        
+        // Initialize game start time
+        if gameStartTime == 0 {
+            gameStartTime = currentTime
+        }
+        
+        // Update score
+        currentScore = currentTime - gameStartTime
+        scoreLabel.text = String(format: "%.1fs", currentScore)
+        
+        // Check for milestone celebrations (every 10 seconds)
+        let currentMilestone = Int(currentScore) / 10
+        if currentMilestone > lastMilestone && currentScore > 0 {
+            lastMilestone = currentMilestone
+            // Brief celebration
+            princess.celebrate()
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+                if self?.isGameOver == false {
+                    self?.princess.setState(.running)
+                }
+            }
+        }
+        
+        // Update speed
+        let previousSpeed = currentSpeed
+        currentSpeed = min(GameConstants.startSpeed + (GameConstants.speedGainPerSecond * CGFloat(currentScore)), GameConstants.maxSpeed)
+        
+        // Princess animation is now handled by the entity itself
+        
+        // Update spawn interval
+        let spawnProgress = min(currentScore / GameConstants.spawnRampDuration, 1.0)
+        currentSpawnInterval = GameConstants.initialSpawnInterval - (GameConstants.initialSpawnInterval - GameConstants.minSpawnInterval) * spawnProgress
+        
+        // Spawn obstacles
+        if currentTime - lastSpawnTime >= currentSpawnInterval {
+            spawnObstacle()
+            lastSpawnTime = currentTime
+        }
+        
+        // Move obstacles
+        let deltaTime = 1.0 / 60.0 // Assuming 60 FPS
+        obstacleContainer.enumerateChildNodes(withName: "obstacle") { node, _ in
+            node.position.x -= self.currentSpeed * CGFloat(deltaTime)
+            
+            // Remove off-screen obstacles
+            if node.position.x < -100 {
+                node.removeFromParent()
+            }
+        }
+        
+        // Check input buffer
+        if princess.isGrounded && (currentTime - jumpBufferTime) <= GameConstants.inputBufferTime {
+            princess.jump()
+            jumpBufferTime = 0
+        }
+        
+        // Keep princess at fixed horizontal position
+        // The horizontal jump boost creates the visual effect of forward momentum
+        // while the princess actually stays in place (obstacles move towards them)
+        if let physicsBody = princess.physicsBody {
+            let targetX = frame.width * 0.15
+            let currentX = princess.position.x
+            if abs(currentX - targetX) > 0.1 {
+                princess.position.x = targetX
+                physicsBody.velocity.dx = 0
+            }
+        }
+    }
+    
+    private func spawnObstacle() {
+        // Create rock sprite
+        let rockTexture = SKTexture(imageNamed: "Rock")
+        rockTexture.filteringMode = .linear
+        let obstacle = SKSpriteNode(texture: rockTexture)
+        obstacle.name = "obstacle"
+        
+        // Make rocks 20x smaller (scale of 0.05)
+        let baseScale: CGFloat = 0.05
+        // Add some variety in size
+        let scale = baseScale * CGFloat.random(in: 0.8...1.2)
+        obstacle.setScale(scale)
+        
+        // Position the rock 5px lower than ground line
+        obstacle.position = CGPoint(
+            x: frame.width + 50,
+            y: GameConstants.groundY + (obstacle.size.height / 2) - 5
+        )
+        
+        // Create physics body based on rectangle (simpler than texture for small rocks)
+        obstacle.physicsBody = SKPhysicsBody(rectangleOf: obstacle.size)
+        obstacle.physicsBody?.isDynamic = false
+        obstacle.physicsBody?.categoryBitMask = PhysicsCategory.obstacle
+        obstacle.physicsBody?.contactTestBitMask = PhysicsCategory.player
+        
+        obstacleContainer.addChild(obstacle)
+    }
+    
+    // MARK: - Physics Contact
+    
+    func didBegin(_ contact: SKPhysicsContact) {
+        let collision = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
+        
+        if collision == PhysicsCategory.player | PhysicsCategory.ground {
+            princess.land()
+        } else if collision == PhysicsCategory.player | PhysicsCategory.obstacle {
+            gameOver()
+        }
+    }
+    
+    func didEnd(_ contact: SKPhysicsContact) {
+        let collision = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
+        
+        if collision == PhysicsCategory.player | PhysicsCategory.ground {
+            princess.isGrounded = false
+        }
+    }
+    
+    private func gameOver() {
+        isGameOver = true
+        
+        // Stop princess animations
+        princess.stopRunning()
+        
+        // Update best score
+        if currentScore > bestScore {
+            bestScore = currentScore
+            UserDefaults.standard.set(bestScore, forKey: "bestScore")
+        }
+        
+        // Haptic feedback
+        if UserDefaults.standard.bool(forKey: "hapticsEnabled", defaultValue: true) {
+            HapticManager.shared.heavyImpact()
+        }
+        
+        // Screen shake
+        if !UserDefaults.standard.bool(forKey: "reducedMotion") {
+            let shakeAction = createScreenShake()
+            scene?.run(shakeAction)
+        }
+        
+        // Transition to game over scene
+        let waitAction = SKAction.wait(forDuration: 0.5)
+        let transitionAction = SKAction.run {
+            let gameOverScene = GameOverScene(size: self.size)
+            gameOverScene.score = self.currentScore
+            gameOverScene.bestScore = self.bestScore
+            gameOverScene.scaleMode = self.scaleMode
+            let transition = SKTransition.fade(withDuration: 0.3)
+            self.view?.presentScene(gameOverScene, transition: transition)
+        }
+        run(SKAction.sequence([waitAction, transitionAction]))
+    }
+    
+    private func createScreenShake() -> SKAction {
+        let numberOfShakes = 4
+        let duration = GameConstants.deathShakeDuration / Double(numberOfShakes)
+        let intensity = GameConstants.deathShakeIntensity
+        
+        var shakeActions: [SKAction] = []
+        
+        for _ in 0..<numberOfShakes {
+            let moveX = CGFloat.random(in: -intensity...intensity)
+            let moveY = CGFloat.random(in: -intensity...intensity)
+            let shakeAction = SKAction.moveBy(x: moveX, y: moveY, duration: duration / 2)
+            let reverseAction = SKAction.moveBy(x: -moveX, y: -moveY, duration: duration / 2)
+            shakeActions.append(contentsOf: [shakeAction, reverseAction])
+        }
+        
+        return SKAction.sequence(shakeActions)
+    }
+    
+    // MARK: - Debug
+    
+    #if DEBUG
+    override func touchesMoved(_ touches: Set<UITouch>, with event: UIEvent?) {
+        let touchCount = touches.count
+        
+        switch touchCount {
+        case 2:
+            // Slow motion
+            physicsWorld.speed = 0.3
+            self.speed = 0.3
+        // Removed physics debug toggle to prevent red X from appearing
+        // case 3:
+        //     // Toggle hitboxes
+        //     view?.showsPhysics.toggle()
+        case 4:
+            // Reset best score
+            UserDefaults.standard.set(0.0, forKey: "bestScore")
+            bestScore = 0
+            bestScoreLabel.text = "BEST 0.0"
+        default:
+            break
+        }
+    }
+    
+    override func touchesEnded(_ touches: Set<UITouch>, with event: UIEvent?) {
+        if touches.count == 2 {
+            // Reset speed
+            physicsWorld.speed = 1.0
+            self.speed = 1.0
+        }
+    }
+    #endif
+}

@@ -4,35 +4,35 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-This is **Circle Runner**, a minimal iOS runner game built with SpriteKit. The player controls a circle that auto-runs to the right, tapping to jump over obstacles. The game features a clean, high-contrast aesthetic with white shapes on a black background.
+This is **Princess Saves the King**, a narrative endless runner game built with SpriteKit. The player controls a Princess character on her quest to save the King, jumping over obstacles through various castle checkpoints. The game features a watercolor-inspired art style with pastel colors and engaging storyline.
 
 ## Build and Development Commands
 
 ### Building the Project
 ```bash
 # Build for iOS Simulator
-xcodebuild -project aug42025.xcodeproj -scheme aug42025 -destination 'platform=iOS Simulator,name=iPhone 15' build
+xcodebuild -project PrincessSavesTheKing.xcodeproj -scheme PrincessSavesTheKing -destination 'platform=iOS Simulator,name=iPhone 15' build
 
 # Build for device
-xcodebuild -project aug42025.xcodeproj -scheme aug42025 -destination 'generic/platform=iOS' build
+xcodebuild -project PrincessSavesTheKing.xcodeproj -scheme PrincessSavesTheKing -destination 'generic/platform=iOS' build
 ```
 
 ### Running the Game
 ```bash
 # Run on simulator
-xcodebuild -project aug42025.xcodeproj -scheme aug42025 -destination 'platform=iOS Simulator,name=iPhone 15' run
+xcodebuild -project PrincessSavesTheKing.xcodeproj -scheme PrincessSavesTheKing -destination 'platform=iOS Simulator,name=iPhone 15' run
 
 # Open in Xcode
-open aug42025.xcodeproj
+open PrincessSavesTheKing.xcodeproj
 ```
 
 ### Running Tests
 ```bash
 # Run unit tests
-xcodebuild test -project aug42025.xcodeproj -scheme aug42025 -destination 'platform=iOS Simulator,name=iPhone 15'
+xcodebuild test -project PrincessSavesTheKing.xcodeproj -scheme PrincessSavesTheKing -destination 'platform=iOS Simulator,name=iPhone 15'
 
 # Run UI tests
-xcodebuild test -project aug42025.xcodeproj -scheme aug42025UITests -destination 'platform=iOS Simulator,name=iPhone 15'
+xcodebuild test -project PrincessSavesTheKing.xcodeproj -scheme PrincessSavesTheKingUITests -destination 'platform=iOS Simulator,name=iPhone 15'
 ```
 
 ## Architecture
@@ -41,25 +41,39 @@ The project follows a SpriteKit game architecture:
 
 ### Core Structure
 ```
-aug42025/
+PrincessSavesTheKing/
 ├── App/
-│   ├── CircleRunnerApp.swift    # UIKit app delegate
-│   └── GameViewController.swift  # Main view controller hosting SpriteKit
+│   ├── PrincessSavesTheKingApp.swift    # UIKit app delegate
+│   ├── GameViewController.swift  # Main view controller hosting SpriteKit
+│   └── ContentView.swift        # SwiftUI content view
 ├── Game/
-│   ├── MenuScene.swift          # Main menu with play button and settings
-│   ├── GameScene.swift          # Core gameplay logic
-│   ├── GameOverScene.swift      # Game over screen with retry
-│   └── Physics.swift            # Physics constants and categories
+│   ├── Scenes/
+│   │   ├── MenuScene.swift      # Main menu with play button and settings
+│   │   ├── GameScene.swift      # Core gameplay logic
+│   │   └── GameOverScene.swift  # Game over screen with retry
+│   ├── Systems/
+│   │   └── Physics.swift        # Physics constants and categories
+│   ├── Entities/                # Game entity classes (to be added)
+│   └── Components/              # Reusable game components (to be added)
+├── Art/
+│   ├── Characters/              # Character sprites and animations
+│   ├── Environment/             # Background and obstacle art
+│   └── UI/                      # UI visual assets
+├── Audio/
+│   ├── Music/                   # Background music tracks
+│   └── SFX/                     # Sound effects
 ├── Services/
 │   └── Haptics.swift           # Haptic feedback manager
-└── Assets.xcassets/            # Game assets
+├── UI/
+│   └── ColorPalette.swift      # Color theme definitions
+└── Assets.xcassets/            # Xcode asset catalog
 ```
 
 ### Key Game Systems
 
 1. **Physics System**
    - Gravity: -9.8 × 3.5
-   - Jump impulse: 270
+   - Jump impulse: 75 (recently adjusted for better gameplay)
    - Categories: player (1), obstacle (2), ground (4)
 
 2. **Jump Mechanics**

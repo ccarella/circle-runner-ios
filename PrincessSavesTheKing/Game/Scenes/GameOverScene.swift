@@ -17,6 +17,10 @@ class GameOverScene: SKScene {
     private var homeButton: SKShapeNode!
     
     override func didMove(to view: SKView) {
+        // Set accessibility identifier for the scene
+        self.accessibilityLabel = "GameOverScene"
+        self.isAccessibilityElement = true
+        
         createGradientBackground()
         setupUI()
     }
@@ -54,6 +58,8 @@ class GameOverScene: SKScene {
         gameOverLabel.fontSize = 48
         gameOverLabel.fontColor = .charcoal
         gameOverLabel.position = CGPoint(x: frame.midX, y: frame.midY + 100)
+        gameOverLabel.accessibilityLabel = "Game Over"
+        gameOverLabel.isAccessibilityElement = true
         addChild(gameOverLabel)
         
         // Shadow for game over label
@@ -71,6 +77,8 @@ class GameOverScene: SKScene {
         scoreLabel.fontSize = 56
         scoreLabel.fontColor = .charcoal
         scoreLabel.position = CGPoint(x: frame.midX, y: frame.midY + 20)
+        scoreLabel.accessibilityLabel = "FinalScoreLabel"
+        scoreLabel.isAccessibilityElement = true
         addChild(scoreLabel)
         
         // Best score
@@ -79,6 +87,8 @@ class GameOverScene: SKScene {
         bestScoreLabel.fontSize = 24
         bestScoreLabel.fontColor = .charcoal
         bestScoreLabel.position = CGPoint(x: frame.midX, y: frame.midY - 40)
+        bestScoreLabel.accessibilityLabel = "BestScoreLabel"
+        bestScoreLabel.isAccessibilityElement = true
         addChild(bestScoreLabel)
         
         // Retry button - positioned to the left
@@ -87,6 +97,8 @@ class GameOverScene: SKScene {
         retryButton.strokeColor = .pastelCoral
         retryButton.position = CGPoint(x: frame.midX - 90, y: frame.midY - 120)
         retryButton.name = "retryButton"
+        retryButton.accessibilityLabel = "RetryButton"
+        retryButton.isAccessibilityElement = true
         
         let retryLabel = SKLabelNode(text: "Retry")
         retryLabel.fontName = "Noteworthy-Bold"
@@ -104,6 +116,8 @@ class GameOverScene: SKScene {
         homeButton.lineWidth = 3
         homeButton.position = CGPoint(x: frame.midX + 90, y: frame.midY - 120)
         homeButton.name = "homeButton"
+        homeButton.accessibilityLabel = "MenuButton"
+        homeButton.isAccessibilityElement = true
         
         let homeLabel = SKLabelNode(text: "Home")
         homeLabel.fontName = "Noteworthy-Bold"

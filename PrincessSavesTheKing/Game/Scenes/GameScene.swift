@@ -9,7 +9,7 @@ import SpriteKit
 import GameplayKit
 
 @MainActor
-class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
+class GameScene: SKScene, @preconcurrency SKPhysicsContactDelegate, CastleManagerDelegate {
     
     // Nodes
     private var princess: Princess!
@@ -22,17 +22,28 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
     // Game state
     private var gameStartTime: TimeInterval = 0
     private var currentScore: TimeInterval = 0
-    private var bestScore: TimeInterval = 0
+    var bestScore: TimeInterval = 0
     private var isGameOver = false
     private var currentSpeed: CGFloat = GameConstants.startSpeed
+    private var previousSpeed: CGFloat = GameConstants.startSpeed
     private var lastMilestone: Int = 0
-    private var isGamePaused = false
+    var isGamePaused = false
+    var currentLevel: Int = 1
+    private var hasShownIntro = false
+    private var hasStartedRunning = false
+    
+    // Powerup state
+    private var isInvincible = false
+    private var invincibilityEndTime: TimeInterval = 0
+    private var hasSpawnedStar = false
+    private var starSpawnTime: TimeInterval = 0
+    private var currentStar: Star?
     
     // Castle system
-    private var castleManager: CastleManager!
-    private var castleApproachIndicator: SKNode?
-    private var castleTimeLabel: SKLabelNode!
-    private var castleProgressLabel: SKLabelNode!
+    var castleManager: CastleManager!
+    var castleApproachIndicator: SKNode?
+    var castleTimeLabel: SKLabelNode!
+    var castleProgressLabel: SKLabelNode!
     
     // Jump mechanics
     private var jumpBufferTime: TimeInterval = 0
@@ -40,6 +51,10 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
     // Spawning
     private var lastSpawnTime: TimeInterval = 0
     private var currentSpawnInterval: TimeInterval = GameConstants.initialSpawnInterval
+    private var level1RocksSpawned: Int = 0
+    
+    // Audio
+    private var backgroundMusicNode: SKAudioNode?
     
     
     override func didMove(to view: SKView) {
@@ -50,15 +65,30 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         setupGame()
         setupHUD()
         setupCastleManager()
+        setupBackgroundMusic()
         startGame()
+        
+        // Show intro story
+        showIntroStory()
     }
     
     private func createGradientBackground() {
-        // Use the background image from Art/Environment
-        let backgroundTexture = SKTexture(imageNamed: "Background")
+        // Use different background based on current level
+        let backgroundName: String
+        switch currentLevel {
+        case 2:
+            backgroundName = "BackgroundLevel2"
+        case 3:
+            backgroundName = "BackgroundLevel3"
+        default:
+            backgroundName = "Background"
+        }
+        
+        let backgroundTexture = SKTexture(imageNamed: backgroundName)
         backgroundTexture.filteringMode = .linear // Use linear for background to avoid pixelation
         
         let backgroundNode = SKSpriteNode(texture: backgroundTexture)
+        backgroundNode.name = "background"
         backgroundNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
         backgroundNode.zPosition = -10
         
@@ -99,6 +129,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         princess = Princess()
         princess.position = CGPoint(x: frame.width * 0.15, y: GameConstants.groundY)
         princess.updateTrailTarget(self)
+        princess.physicsBody?.contactTestBitMask = PhysicsCategory.obstacle | PhysicsCategory.ground | PhysicsCategory.star
         addChild(princess)
         
         // Start in idle state until game begins
@@ -151,6 +182,23 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         hudNode.addChild(castleTimeLabel)
     }
     
+    private func setupBackgroundMusic() {
+        // Create background music node
+        if let musicURL = Bundle.main.url(forResource: "chiptune_loop_10s", withExtension: "wav") {
+            backgroundMusicNode = SKAudioNode(url: musicURL)
+            backgroundMusicNode?.autoplayLooped = true
+            
+            // Set volume (0.0 to 1.0)
+            let volumeAction = SKAction.changeVolume(to: 0.3, duration: 0)
+            backgroundMusicNode?.run(volumeAction)
+            
+            // Add to scene
+            if let musicNode = backgroundMusicNode {
+                addChild(musicNode)
+            }
+        }
+    }
+    
     
     private func startGame() {
         gameStartTime = 0
@@ -160,9 +208,21 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         currentSpawnInterval = GameConstants.initialSpawnInterval
         princess.isGrounded = true
         lastMilestone = 0
+        
+        // Reset story state
+        hasShownIntro = false
+        hasStartedRunning = false
+        StoryManager.shared.reset()
+        
+        // Reset powerup state
+        isInvincible = false
+        invincibilityEndTime = 0
+        hasSpawnedStar = false
+        starSpawnTime = TimeInterval.random(in: 10...20)
+        currentStar = nil
     }
     
-    private func setupCastleManager() {
+    func setupCastleManager() {
         castleManager = CastleManager()
         castleManager.delegate = self
     }
@@ -175,6 +235,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         // Start the game on first tap if not started
         if gameStartTime == 0 {
             princess.setState(.running)
+            showRunningStartStory()
         }
         
         // Check if we can jump (grounded or within coyote time)
@@ -192,12 +253,23 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         
         // Initialize game start time
         if gameStartTime == 0 {
-            gameStartTime = currentTime
+            gameStartTime = currentTime - currentScore // Preserve score when resuming
         }
         
         // Update score
         currentScore = currentTime - gameStartTime
         scoreLabel.text = String(format: "%.1fs", currentScore)
+        
+        // Check for star spawn
+        if !hasSpawnedStar && currentScore >= starSpawnTime {
+            spawnStar()
+            hasSpawnedStar = true
+        }
+        
+        // Update invincibility
+        if isInvincible && currentTime >= invincibilityEndTime {
+            endInvincibility()
+        }
         
         // Update castle manager
         let frameDelta = 1.0 / 60.0 // Assuming 60 FPS
@@ -210,6 +282,8 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         let currentMilestone = Int(currentScore) / 10
         if currentMilestone > lastMilestone && currentScore > 0 {
             lastMilestone = currentMilestone
+            // Show milestone story
+            showMilestoneStory(for: currentMilestone)
             // Brief celebration
             princess.celebrate()
             DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
@@ -220,19 +294,29 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         }
         
         // Update speed
-        let previousSpeed = currentSpeed
         currentSpeed = min(GameConstants.startSpeed + (GameConstants.speedGainPerSecond * CGFloat(currentScore)), GameConstants.maxSpeed)
         
         // Princess animation is now handled by the entity itself
         
         // Update spawn interval
-        let spawnProgress = min(currentScore / GameConstants.spawnRampDuration, 1.0)
-        currentSpawnInterval = GameConstants.initialSpawnInterval - (GameConstants.initialSpawnInterval - GameConstants.minSpawnInterval) * spawnProgress
+        if currentLevel == 1 {
+            // Level 1: Fixed spawn rate of 1 rock per 2 seconds
+            currentSpawnInterval = 2.0
+        } else {
+            // Other levels: Progressive spawn rate
+            let spawnProgress = min(currentScore / GameConstants.spawnRampDuration, 1.0)
+            currentSpawnInterval = GameConstants.initialSpawnInterval - (GameConstants.initialSpawnInterval - GameConstants.minSpawnInterval) * spawnProgress
+        }
         
         // Spawn obstacles
-        if currentTime - lastSpawnTime >= currentSpawnInterval {
+        if currentLevel == 1 && level1RocksSpawned >= 15 {
+            // Don't spawn more rocks on level 1 after 15
+        } else if currentTime - lastSpawnTime >= currentSpawnInterval {
             spawnObstacle()
             lastSpawnTime = currentTime
+            if currentLevel == 1 {
+                level1RocksSpawned += 1
+            }
         }
         
         // Move obstacles
@@ -243,6 +327,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
             // Remove off-screen obstacles
             if node.position.x < -100 {
                 node.removeFromParent()
+            }
+        }
+        
+        // Move star if it exists
+        if let star = currentStar {
+            star.position.x -= currentSpeed * CGFloat(frameDuration)
+            
+            // Remove off-screen star
+            if star.position.x < -100 {
+                star.removeFromParent()
+                currentStar = nil
             }
         }
         
@@ -265,6 +360,22 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         }
     }
     
+    private func spawnStar() {
+        let star = Star()
+        star.name = "star"
+        
+        // Position star so princess can jump and reach it
+        // Star should appear in the sky but low enough to be reachable
+        let jumpHeight = GameConstants.jumpImpulse * 0.8 // Approximate jump height
+        star.position = CGPoint(
+            x: frame.width + 100,
+            y: GameConstants.groundY + jumpHeight
+        )
+        
+        currentStar = star
+        addChild(star)
+    }
+    
     private func spawnObstacle() {
         // Create rock sprite
         let rockTexture = SKTexture(imageNamed: "Rock")
@@ -272,16 +383,47 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         let obstacle = SKSpriteNode(texture: rockTexture)
         obstacle.name = "obstacle"
         
-        // Make rocks 20x smaller (scale of 0.05)
+        // Determine rock size based on level
         let baseScale: CGFloat = 0.05
-        // Add some variety in size
-        let scale = baseScale * CGFloat.random(in: 0.8...1.2)
+        let scale: CGFloat
+        
+        switch currentLevel {
+        case 1:
+            // Level 1: Only small rocks
+            scale = baseScale * CGFloat.random(in: 0.8...1.0)
+        case 2:
+            // Level 2: Small and medium rocks
+            let rockType = Int.random(in: 0...1)
+            if rockType == 0 {
+                // Small rock
+                scale = baseScale * CGFloat.random(in: 0.8...1.0)
+            } else {
+                // Medium rock
+                scale = baseScale * CGFloat.random(in: 1.2...1.5)
+            }
+        default:
+            // Level 3+: All rock sizes (small, medium, large)
+            let rockType = Int.random(in: 0...2)
+            switch rockType {
+            case 0:
+                // Small rock
+                scale = baseScale * CGFloat.random(in: 0.8...1.0)
+            case 1:
+                // Medium rock
+                scale = baseScale * CGFloat.random(in: 1.2...1.5)
+            default:
+                // Large rock
+                scale = baseScale * CGFloat.random(in: 1.8...2.2)
+            }
+        }
+        
         obstacle.setScale(scale)
         
-        // Position the rock 5px lower than ground line
+        // Position rocks to sit on the ground
+        // Rocks should appear slightly below the princess's feet
         obstacle.position = CGPoint(
             x: frame.width + 50,
-            y: GameConstants.groundY + (obstacle.size.height / 2) - 5
+            y: GameConstants.groundY + (obstacle.size.height / 2) - 10
         )
         
         // Create physics body based on rectangle (simpler than texture for small rocks)
@@ -295,16 +437,28 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
     
     // MARK: - Physics Contact
     
+    @MainActor
     func didBegin(_ contact: SKPhysicsContact) {
         let collision = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
         
         if collision == PhysicsCategory.player | PhysicsCategory.ground {
             princess.land()
         } else if collision == PhysicsCategory.player | PhysicsCategory.obstacle {
-            gameOver()
+            if !isInvincible {
+                gameOver()
+            }
+        } else if collision == PhysicsCategory.player | PhysicsCategory.star {
+            // Collect star
+            if let star = currentStar {
+                star.collect()
+                currentStar = nil
+                startInvincibility()
+                showPowerupCollectedStory()
+            }
         }
     }
     
+    @MainActor
     func didEnd(_ contact: SKPhysicsContact) {
         let collision = contact.bodyA.categoryBitMask | contact.bodyB.categoryBitMask
         
@@ -318,6 +472,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         
         // Stop princess animations
         princess.stopRunning()
+        
+        // Pause background music
+        backgroundMusicNode?.run(SKAction.pause())
         
         // Update best score
         if currentScore > bestScore {
@@ -411,6 +568,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         if castleTimeLabel.alpha == 0 {
             castleTimeLabel.run(SKAction.fadeIn(withDuration: 0.5))
             
+            // Show castle approach story
+            showCastleApproachStory(for: castle)
+            
             // Create approach visual indicator
             createCastleApproachIndicator()
         }
@@ -429,6 +589,9 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         // Pause the game
         isGamePaused = true
         physicsWorld.speed = 0
+        
+        // Pause background music
+        backgroundMusicNode?.run(SKAction.pause())
         
         // Hide approach indicators
         castleTimeLabel.removeAllActions()
@@ -457,7 +620,19 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
             castleScene.castleNumber = castle
             castleScene.scaleMode = scaleMode
             castleScene.onContinue = { [weak self] in
-                self?.resumeFromCastle()
+                guard let self = self else { 
+                    print("DEBUG: ERROR - self is nil in onContinue closure")
+                    return 
+                }
+                print("DEBUG: CastleScene onContinue closure called, transitioning back to GameScene")
+                // Return to this game scene
+                let transition = SKTransition.fade(withDuration: 0.5)
+                self.view?.presentScene(self, transition: transition)
+                // Resume game after transition completes
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    print("DEBUG: Calling resumeFromCastle after transition")
+                    self.resumeFromCastle()
+                }
             }
             
             let transition = SKTransition.fade(withDuration: 0.5)
@@ -517,15 +692,69 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         addChild(indicator)
     }
     
-    private func resumeFromCastle() {
-        // Return to game scene
-        let gameScene = GameScene(size: size)
-        gameScene.scaleMode = scaleMode
-        let transition = SKTransition.fade(withDuration: 0.5)
-        view?.presentScene(gameScene, transition: transition)
+    func resumeFromCastle() {
+        print("DEBUG: resumeFromCastle called")
+        
+        // Ensure scene is visible
+        self.alpha = 1.0
+        
+        // Resume the game instead of creating a new scene
+        isGamePaused = false
+        physicsWorld.speed = 1.0
+        
+        // Resume background music
+        backgroundMusicNode?.run(SKAction.play())
+        
+        // Clear all obstacles for a fresh start after the castle
+        obstacleContainer.removeAllChildren()
+        
+        // Reset spawn timing for smoother continuation
+        lastSpawnTime = 0
+        
+        // Important: Keep the game start time to preserve score
+        // gameStartTime should NOT be reset to 0
+        // If gameStartTime is 0, set it properly based on current score
+        if gameStartTime == 0 && currentScore > 0 {
+            gameStartTime = CACurrentMediaTime() - currentScore
+        }
+        
+        // Update castle manager
+        castleManager.resumeFromCastleScene()
+        
+        // Update level based on castle number
+        currentLevel = castleManager.currentCastle
+        print("DEBUG: Now on level \(currentLevel)")
+        
+        // Update background for new level
+        updateBackgroundForLevel()
+        
+        // Reset level 1 rock counter when moving to a new level
+        if currentLevel > 1 {
+            level1RocksSpawned = 0
+        }
+        
+        // Put princess back in running state
+        princess.setState(.running)
+        
+        // Reset the speed to proper level for current score
+        // This is important to maintain difficulty progression
+        let timeSinceStart = currentScore
+        currentSpeed = min(GameConstants.startSpeed + (GameConstants.speedGainPerSecond * CGFloat(timeSinceStart)), GameConstants.maxSpeed)
+        
+        print("DEBUG: Game resumed - isPaused: \(isGamePaused), speed: \(currentSpeed), score: \(currentScore), level: \(currentLevel)")
+        print("DEBUG: Princess state: \(princess.currentAnimationState), position: \(princess.position)")
+        print("DEBUG: Scene alpha: \(self.alpha), isPaused: \(self.isPaused)")
+        
+        // Show a brief celebration
+        princess.celebrate()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            if self?.isGameOver == false && self?.isGamePaused == false {
+                self?.princess.setState(.running)
+            }
+        }
     }
     
-    private func showEndingScene() {
+    func showEndingScene() {
         // Show ending/credits scene
         let endingScene = EndingScene(size: size)
         endingScene.scaleMode = scaleMode
@@ -533,5 +762,109 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         
         let transition = SKTransition.fade(withDuration: 1.0)
         view?.presentScene(endingScene, transition: transition)
+    }
+    
+    private func updateBackgroundForLevel() {
+        // Remove existing background
+        if let existingBackground = childNode(withName: "background") {
+            existingBackground.removeFromParent()
+        }
+        
+        // Use different background based on current level
+        let backgroundName: String
+        switch currentLevel {
+        case 2:
+            backgroundName = "BackgroundLevel2"
+        case 3:
+            backgroundName = "BackgroundLevel3"
+        default:
+            backgroundName = "Background"
+        }
+        
+        let backgroundTexture = SKTexture(imageNamed: backgroundName)
+        backgroundTexture.filteringMode = .linear
+        
+        let backgroundNode = SKSpriteNode(texture: backgroundTexture)
+        backgroundNode.name = "background"
+        backgroundNode.position = CGPoint(x: size.width / 2, y: size.height / 2)
+        backgroundNode.zPosition = -10
+        
+        // Scale to fill the screen while maintaining aspect ratio
+        let textureAspectRatio = backgroundTexture.size().width / backgroundTexture.size().height
+        let screenAspectRatio = size.width / size.height
+        
+        if textureAspectRatio > screenAspectRatio {
+            backgroundNode.size.height = size.height
+            backgroundNode.size.width = size.height * textureAspectRatio
+        } else {
+            backgroundNode.size.width = size.width
+            backgroundNode.size.height = size.width / textureAspectRatio
+        }
+        
+        addChild(backgroundNode)
+    }
+    
+    // MARK: - Powerup Functions
+    
+    private func startInvincibility() {
+        isInvincible = true
+        invincibilityEndTime = CACurrentMediaTime() + 10.0 // 10 seconds of invincibility
+        
+        // Start flashing animation on princess
+        let fadeOut = SKAction.fadeAlpha(to: 0.4, duration: 0.2)
+        let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: 0.2)
+        let flash = SKAction.sequence([fadeOut, fadeIn])
+        princess.run(SKAction.repeatForever(flash), withKey: "invincibilityFlash")
+        
+        // Play sound effect if available
+        // run(SKAction.playSoundFileNamed("powerup.wav", waitForCompletion: false))
+        
+        // Haptic feedback
+        if UserDefaults.standard.bool(forKey: "hapticsEnabled", defaultValue: true) {
+            HapticManager.shared.heavyImpact()
+        }
+    }
+    
+    private func endInvincibility() {
+        isInvincible = false
+        invincibilityEndTime = 0
+        
+        // Stop flashing animation
+        princess.removeAction(forKey: "invincibilityFlash")
+        princess.alpha = 1.0
+    }
+    
+    // MARK: - Story Integration
+    
+    private func showIntroStory() {
+        guard !hasShownIntro else { return }
+        hasShownIntro = true
+        
+        let intro = StoryManager.shared.getIntroStory()
+        showStoryText(intro)
+    }
+    
+    private func showRunningStartStory() {
+        guard !hasStartedRunning else { return }
+        hasStartedRunning = true
+        
+        let runningStory = StoryManager.shared.getRunningStartStory()
+        showStoryText(runningStory)
+    }
+    
+    private func showMilestoneStory(for milestone: Int) {
+        if let story = StoryManager.shared.getMilestoneStory(for: milestone) {
+            showStoryText(story)
+        }
+    }
+    
+    private func showCastleApproachStory(for castleNumber: Int) {
+        let story = StoryManager.shared.getCastleApproachStory(for: castleNumber)
+        showStoryText(story)
+    }
+    
+    private func showPowerupCollectedStory() {
+        let story = StoryManager.shared.getPowerupStory()
+        showStoryText(story)
     }
 }

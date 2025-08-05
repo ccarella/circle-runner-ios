@@ -6,7 +6,7 @@
 //
 // TODO: Add proper sprite sheets for each animation state:
 // - Idle: Standing/breathing animation
-// - Running: Already implemented with 6-frame animation
+// - Running: Already implemented with 12-frame animation (Girl2Walk)
 // - Jumping: Mid-air animation frames
 // - Landing: Impact/recovery animation
 // - Celebration: Victory dance/cheer animation
@@ -34,11 +34,11 @@ class Princess: SKNode {
     var lastGroundContactTime: TimeInterval = 0
     
     // Animation timing
-    private let idleFrameTime: TimeInterval = 0.15
-    private let runningFrameTime: TimeInterval = 0.08
-    private let jumpingFrameTime: TimeInterval = 0.12
-    private let landingFrameTime: TimeInterval = 0.1
-    private let celebrationFrameTime: TimeInterval = 0.1
+    private let idleFrameTime: TimeInterval = 0.08
+    private let runningFrameTime: TimeInterval = 0.05
+    private let jumpingFrameTime: TimeInterval = 0.08
+    private let landingFrameTime: TimeInterval = 0.06
+    private let celebrationFrameTime: TimeInterval = 0.06
     
     override init() {
         super.init()
@@ -53,17 +53,17 @@ class Princess: SKNode {
     }
     
     private func setupSprite() {
-        // Load the princess6_transparent.png sprite sheet (3x2 layout with 6 frames)
-        let sheet = SKTexture(imageNamed: "Princess6Transparent")
+        // Load the Girl2Walk sprite sheet (1 row with 12 frames)
+        let sheet = SKTexture(imageNamed: "Girl2Walk")
         sheet.filteringMode = .nearest // Crisp pixel art
         
-        // Slice the sprite sheet into 6 frames (3 columns x 2 rows)
-        let cols = 3
-        let rows = 2
+        // Slice the sprite sheet into 12 frames (12 columns x 1 row)
+        let cols = 12
+        let rows = 1
         let frameWidth = 1.0 / CGFloat(cols)
         let frameHeight = 1.0 / CGFloat(rows)
         
-        // Read frames in order: top-left to bottom-right
+        // Read frames in order: left to right
         for row in 0..<rows {
             for col in 0..<cols {
                 let rect = CGRect(
@@ -98,7 +98,8 @@ class Princess: SKNode {
     private func setupPhysics() {
         // Create physics body on the container (self), not the sprite
         let physicsSize = CGSize(width: GameConstants.playerRadius * 2.4, height: GameConstants.playerRadius * 4.5)
-        // Center the physics body since anchor is at bottom
+        // Position physics body so its bottom edge aligns with the node's position
+        // Since we want the princess to stand on the ground, center should be at height/2
         let physicsCenter = CGPoint(x: 0, y: physicsSize.height / 2)
         physicsBody = SKPhysicsBody(rectangleOf: physicsSize, center: physicsCenter)
         physicsBody?.categoryBitMask = PhysicsCategory.player
@@ -106,6 +107,8 @@ class Princess: SKNode {
         physicsBody?.collisionBitMask = PhysicsCategory.ground
         physicsBody?.allowsRotation = false
         physicsBody?.restitution = 0
+        physicsBody?.friction = 0
+        physicsBody?.linearDamping = 0
     }
     
     private func setupTrail() {
@@ -187,8 +190,8 @@ class Princess: SKNode {
     
     private func startJumpingAnimation() {
         // TODO: When we have jump sprites, use them here
-        // For now, use frames 2-4 of the running animation (mid-stride)
-        let jumpFrames = Array(animationFrames[2...4])
+        // For now, use frames 4-7 of the running animation (mid-stride)
+        let jumpFrames = Array(animationFrames[4...7])
         let animate = SKAction.animate(with: jumpFrames,
                                      timePerFrame: jumpingFrameTime,
                                      resize: false,
@@ -198,8 +201,8 @@ class Princess: SKNode {
     
     private func startLandingAnimation() {
         // TODO: When we have landing sprites, use them here
-        // For now, use frames 4-5 of the running animation
-        let landingFrames = Array(animationFrames[4...5])
+        // For now, use frames 8-10 of the running animation
+        let landingFrames = Array(animationFrames[8...10])
         let animate = SKAction.animate(with: landingFrames,
                                      timePerFrame: landingFrameTime,
                                      resize: false,

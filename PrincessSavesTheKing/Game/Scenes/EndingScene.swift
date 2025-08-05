@@ -36,6 +36,9 @@ class EndingScene: SKScene {
         
         // Start animations
         startAnimations()
+        
+        // Show ending narrative
+        showEndingNarrative()
     }
     
     private func createBackground() {
@@ -366,6 +369,21 @@ class EndingScene: SKScene {
                 ]),
                 SKAction.removeFromParent()
             ]))
+        }
+    }
+    
+    private func showEndingNarrative() {
+        let narratives = StoryManager.shared.getEndingNarrative()
+        var delay: TimeInterval = 4.0 // Start after title animations
+        
+        for narrative in narratives {
+            run(SKAction.sequence([
+                SKAction.wait(forDuration: delay),
+                SKAction.run { [weak self] in
+                    self?.showStoryText(narrative)
+                }
+            ]))
+            delay += narrative.duration + 1.0 // Add gap between narratives
         }
     }
     

@@ -19,6 +19,10 @@ class CastleScene: SKScene {
     private var frog: Frog!
     
     override func didMove(to view: SKView) {
+        // Set accessibility identifier for the scene
+        self.accessibilityLabel = "CastleScene"
+        self.isAccessibilityElement = true
+        
         createBackground()
         createCastleDisplay()
         createFrogCharacter()
@@ -30,8 +34,14 @@ class CastleScene: SKScene {
             SKAction.fadeIn(withDuration: 0.5),
             SKAction.wait(forDuration: 0.5),
             SKAction.run { [weak self] in
-                self?.frog.performGreeting()
-                self?.frog.showDialogue()
+                // Show frog introduction story
+                guard let self = self else { return }
+                let introText = StoryManager.shared.getFrogIntroduction(for: self.castleNumber)
+                self.showQuickStoryText(introText, at: .top, duration: 2.5)
+                
+                // Then show frog greeting
+                self.frog.performGreeting()
+                self.frog.showDialogue()
             }
         ]))
     }
@@ -78,6 +88,8 @@ class CastleScene: SKScene {
         castleLabel.fontColor = .charcoal
         castleLabel.text = "Castle \(castleNumber)"
         castleLabel.position = CGPoint(x: frame.midX, y: frame.height * 0.85)
+        castleLabel.accessibilityLabel = "Castle Milestone!"
+        castleLabel.isAccessibilityElement = true
         addChild(castleLabel)
         
         // Add a subtitle
@@ -93,6 +105,8 @@ class CastleScene: SKScene {
         // Create frog using the Frog entity
         frog = FrogFactory.shared.createFrog(forCastle: castleNumber)
         frog.position = CGPoint(x: frame.midX - 120, y: frame.height * 0.45)
+        frog.accessibilityLabel = "FrogCharacter"
+        frog.isAccessibilityElement = true
         addChild(frog)
     }
     
@@ -107,6 +121,8 @@ class CastleScene: SKScene {
         continueButton.lineWidth = 3
         continueButton.position = CGPoint(x: frame.midX, y: frame.height * 0.2)
         continueButton.name = "continueButton"
+        continueButton.accessibilityLabel = "ContinueButton"
+        continueButton.isAccessibilityElement = true
         addChild(continueButton)
         
         // Button label
@@ -147,7 +163,14 @@ class CastleScene: SKScene {
                 SKAction.wait(forDuration: 0.2),
                 SKAction.fadeOut(withDuration: 0.3),
                 SKAction.run { [weak self] in
-                    self?.onContinue?()
+                    print("DEBUG: CastleScene calling onContinue, castle number: \(self?.castleNumber ?? -1)")
+                    if self?.onContinue != nil {
+                        print("DEBUG: onContinue is not nil, calling it")
+                        self?.onContinue?()
+                    } else {
+                        print("DEBUG: ERROR - onContinue is nil!")
+                    }
+                    print("DEBUG: CastleScene onContinue completed")
                 }
             ]))
         }

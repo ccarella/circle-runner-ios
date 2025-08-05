@@ -192,7 +192,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         
         // Initialize game start time
         if gameStartTime == 0 {
-            gameStartTime = currentTime
+            gameStartTime = currentTime - currentScore // Preserve score when resuming
         }
         
         // Update score
@@ -457,7 +457,14 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
             castleScene.castleNumber = castle
             castleScene.scaleMode = scaleMode
             castleScene.onContinue = { [weak self] in
-                self?.resumeFromCastle()
+                guard let self = self else { return }
+                // Return to this game scene
+                let transition = SKTransition.fade(withDuration: 0.5)
+                self.view?.presentScene(self, transition: transition)
+                // Resume game after transition completes
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.6) {
+                    self.resumeFromCastle()
+                }
             }
             
             let transition = SKTransition.fade(withDuration: 0.5)
@@ -518,11 +525,32 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
     }
     
     private func resumeFromCastle() {
-        // Return to game scene
-        let gameScene = GameScene(size: size)
-        gameScene.scaleMode = scaleMode
-        let transition = SKTransition.fade(withDuration: 0.5)
-        view?.presentScene(gameScene, transition: transition)
+        // Resume the game instead of creating a new scene
+        isGamePaused = false
+        physicsWorld.speed = 1.0
+        
+        // Clear all obstacles for a fresh start after the castle
+        obstacleContainer.removeAllChildren()
+        
+        // Reset spawn timing for smoother continuation
+        lastSpawnTime = 0
+        
+        // Reset game start time to preserve score continuity
+        gameStartTime = 0
+        
+        // Update castle manager
+        castleManager.resumeFromCastleScene()
+        
+        // Put princess back in running state
+        princess.setState(.running)
+        
+        // Show a brief celebration
+        princess.celebrate()
+        DispatchQueue.main.asyncAfter(deadline: .now() + 1.0) { [weak self] in
+            if self?.isGameOver == false && self?.isGamePaused == false {
+                self?.princess.setState(.running)
+            }
+        }
     }
     
     private func showEndingScene() {

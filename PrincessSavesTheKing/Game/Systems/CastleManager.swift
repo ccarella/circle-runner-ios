@@ -93,6 +93,11 @@ class CastleManager {
     func resumeFromCastleScene() {
         // Resume normal gameplay
         // The timer continues from where it left off
+        // Make sure we don't immediately trigger another castle
+        if currentCastle <= Self.totalCastles {
+            // Adjust session time to be just after the last castle milestone
+            currentSessionTime = Double(currentCastle - 1) * Self.castleInterval + 0.1
+        }
     }
     
     // MARK: - Private Methods

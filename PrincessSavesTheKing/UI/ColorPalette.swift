@@ -35,6 +35,13 @@ struct ColorPalette {
     // Castle/Accent Colors
     static let accentOrange = UIColor(red: 1.0, green: 0.65, blue: 0.40, alpha: 1.0)  // #FFA666
     static let emerald = UIColor(red: 0.40, green: 0.75, blue: 0.50, alpha: 1.0)      // #66BF80
+    
+    // Additional pastel colors for frog variations
+    static let sunflower = UIColor(red: 1.0, green: 0.92, blue: 0.60, alpha: 1.0)     // #FFEB99
+    static let rose = UIColor(red: 1.0, green: 0.80, blue: 0.82, alpha: 1.0)          // #FFCCD1
+    static let ocean = UIColor(red: 0.60, green: 0.80, blue: 0.90, alpha: 1.0)        // #99CCE6
+    static let periwinkle = UIColor(red: 0.80, green: 0.80, blue: 0.95, alpha: 1.0)   // #CCCEF2
+    static let gold = UIColor(red: 1.0, green: 0.85, blue: 0.50, alpha: 1.0)          // #FFD980
 }
 
 // SKColor extensions for easy use in SpriteKit
@@ -54,6 +61,11 @@ extension SKColor {
     static let pastelGroundGreen = SKColor(cgColor: ColorPalette.groundGreen.cgColor)
     static let pastelAccentOrange = SKColor(cgColor: ColorPalette.accentOrange.cgColor)
     static let pastelEmerald = SKColor(cgColor: ColorPalette.emerald.cgColor)
+    static let pastelSunflower = SKColor(cgColor: ColorPalette.sunflower.cgColor)
+    static let pastelRose = SKColor(cgColor: ColorPalette.rose.cgColor)
+    static let pastelOcean = SKColor(cgColor: ColorPalette.ocean.cgColor)
+    static let pastelPeriwinkle = SKColor(cgColor: ColorPalette.periwinkle.cgColor)
+    static let pastelGold = SKColor(cgColor: ColorPalette.gold.cgColor)
 }
 
 // Helper extensions

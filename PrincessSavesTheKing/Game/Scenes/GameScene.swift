@@ -439,16 +439,30 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         ]))
         castleApproachIndicator = nil
         
-        // Show castle scene
-        let castleScene = CastleScene(size: size)
-        castleScene.castleNumber = castle
-        castleScene.scaleMode = scaleMode
-        castleScene.onContinue = { [weak self] in
-            self?.resumeFromCastle()
+        // Show appropriate castle scene
+        if castle == 10 {
+            // Show final castle scene with King rescue
+            let finalCastleScene = FinalCastleScene(size: size)
+            finalCastleScene.scaleMode = scaleMode
+            finalCastleScene.onContinue = { [weak self] in
+                // Go to ending scene
+                self?.showEndingScene()
+            }
+            
+            let transition = SKTransition.fade(withDuration: 0.5)
+            view?.presentScene(finalCastleScene, transition: transition)
+        } else {
+            // Show regular castle scene
+            let castleScene = CastleScene(size: size)
+            castleScene.castleNumber = castle
+            castleScene.scaleMode = scaleMode
+            castleScene.onContinue = { [weak self] in
+                self?.resumeFromCastle()
+            }
+            
+            let transition = SKTransition.fade(withDuration: 0.5)
+            view?.presentScene(castleScene, transition: transition)
         }
-        
-        let transition = SKTransition.fade(withDuration: 0.5)
-        view?.presentScene(castleScene, transition: transition)
     }
     
     func castleManagerDidUpdateProgress(_ manager: CastleManager) {
@@ -509,5 +523,15 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         gameScene.scaleMode = scaleMode
         let transition = SKTransition.fade(withDuration: 0.5)
         view?.presentScene(gameScene, transition: transition)
+    }
+    
+    private func showEndingScene() {
+        // Show ending/credits scene
+        let endingScene = EndingScene(size: size)
+        endingScene.scaleMode = scaleMode
+        endingScene.finalScore = currentScore
+        
+        let transition = SKTransition.fade(withDuration: 1.0)
+        view?.presentScene(endingScene, transition: transition)
     }
 }

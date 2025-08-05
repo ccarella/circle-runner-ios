@@ -14,21 +14,26 @@ class CastleScene: SKScene {
     
     private var backgroundNode: SKSpriteNode!
     private var castleLabel: SKLabelNode!
-    private var messageLabel: SKLabelNode!
     private var continueButton: SKShapeNode!
     private var continueLabel: SKLabelNode!
-    private var frogSprite: SKSpriteNode!
+    private var frog: Frog!
     
     override func didMove(to view: SKView) {
         createBackground()
         createCastleDisplay()
         createFrogCharacter()
-        createMessage()
         createContinueButton()
         
         // Fade in animation
         alpha = 0
-        run(SKAction.fadeIn(withDuration: 0.5))
+        run(SKAction.sequence([
+            SKAction.fadeIn(withDuration: 0.5),
+            SKAction.wait(forDuration: 0.5),
+            SKAction.run { [weak self] in
+                self?.frog.performGreeting()
+                self?.frog.showDialogue()
+            }
+        ]))
     }
     
     private func createBackground() {
@@ -85,87 +90,12 @@ class CastleScene: SKScene {
     }
     
     private func createFrogCharacter() {
-        // Create a simple frog sprite (placeholder)
-        let frogSize = CGSize(width: 80, height: 80)
-        let frogShape = SKShapeNode(ellipseOf: frogSize)
-        frogShape.fillColor = .pastelEmerald
-        frogShape.strokeColor = .pastelEmerald.darker()
-        frogShape.lineWidth = 3
-        frogShape.position = CGPoint(x: frame.midX - 100, y: frame.height * 0.5)
-        addChild(frogShape)
-        
-        // Add eyes
-        let eyeSize: CGFloat = 15
-        let leftEye = SKShapeNode(circleOfRadius: eyeSize)
-        leftEye.fillColor = .white
-        leftEye.strokeColor = .charcoal
-        leftEye.position = CGPoint(x: -20, y: 20)
-        frogShape.addChild(leftEye)
-        
-        let rightEye = SKShapeNode(circleOfRadius: eyeSize)
-        rightEye.fillColor = .white
-        rightEye.strokeColor = .charcoal
-        rightEye.position = CGPoint(x: 20, y: 20)
-        frogShape.addChild(rightEye)
-        
-        // Add pupils
-        let pupilSize: CGFloat = 8
-        let leftPupil = SKShapeNode(circleOfRadius: pupilSize)
-        leftPupil.fillColor = .charcoal
-        leftPupil.strokeColor = .clear
-        leftEye.addChild(leftPupil)
-        
-        let rightPupil = SKShapeNode(circleOfRadius: pupilSize)
-        rightPupil.fillColor = .charcoal
-        rightPupil.strokeColor = .clear
-        rightEye.addChild(rightPupil)
-        
-        // Animate frog
-        let hop = SKAction.sequence([
-            SKAction.moveBy(x: 0, y: 20, duration: 0.3),
-            SKAction.moveBy(x: 0, y: -20, duration: 0.3)
-        ])
-        let wait = SKAction.wait(forDuration: 2.0)
-        frogShape.run(SKAction.repeatForever(SKAction.sequence([hop, wait])))
+        // Create frog using the Frog entity
+        frog = FrogFactory.shared.createFrog(forCastle: castleNumber)
+        frog.position = CGPoint(x: frame.midX - 120, y: frame.height * 0.45)
+        addChild(frog)
     }
     
-    private func createMessage() {
-        // Frog's message based on castle number
-        let messages = [
-            "The King went for a walk... somewhere",
-            "He mentioned something about another castle",
-            "I think he's playing hide and seek",
-            "He left his crown here, so he'll be back",
-            "Try the next castle, I'm pretty sure",
-            "He was here yesterday... or was it last week?",
-            "Almost there! I think...",
-            "Next castle for sure! Maybe...",
-            "OK, he's definitely in the next one"
-        ]
-        
-        let messageIndex = min(castleNumber - 1, messages.count - 1)
-        let message = castleNumber == 10 ? "The King is here! You found him!" : messages[messageIndex]
-        
-        // Speech bubble background
-        let bubbleWidth: CGFloat = 300
-        let bubbleHeight: CGFloat = 100
-        let bubble = SKShapeNode(rect: CGRect(x: -bubbleWidth/2, y: -bubbleHeight/2, width: bubbleWidth, height: bubbleHeight), cornerRadius: 20)
-        bubble.fillColor = .white
-        bubble.strokeColor = .charcoal.withAlphaComponent(0.3)
-        bubble.lineWidth = 2
-        bubble.position = CGPoint(x: frame.midX + 50, y: frame.height * 0.5)
-        addChild(bubble)
-        
-        // Message text
-        messageLabel = SKLabelNode(fontNamed: "Noteworthy-Light")
-        messageLabel.fontSize = 18
-        messageLabel.fontColor = .charcoal
-        messageLabel.text = message
-        messageLabel.numberOfLines = 2
-        messageLabel.preferredMaxLayoutWidth = bubbleWidth - 40
-        messageLabel.verticalAlignmentMode = .center
-        bubble.addChild(messageLabel)
-    }
     
     private func createContinueButton() {
         // Continue button

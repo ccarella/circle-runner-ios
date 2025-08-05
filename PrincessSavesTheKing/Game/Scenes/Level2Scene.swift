@@ -76,7 +76,7 @@ class Level2Scene: GameScene {
     }
     
     // Handle when player reaches the final castle in Level 2
-    func castleManager(_ manager: CastleManager, didReachCastle castle: Int) {
+    override func castleManager(_ manager: CastleManager, didReachCastle castle: Int) {
         // Pause the game
         isGamePaused = true
         physicsWorld.speed = 0

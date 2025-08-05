@@ -18,10 +18,15 @@ protocol CastleManagerDelegate: AnyObject {
 @MainActor
 class CastleManager {
     
-    // Constants
-    static let castleInterval: TimeInterval = 30.0 // 30 seconds per level
-    static let approachWarningTime: TimeInterval = 10.0 // Start showing approach indicators 10 seconds before
-    static let totalCastles = 10
+    // Default Constants
+    static let defaultCastleInterval: TimeInterval = 30.0 // 30 seconds per level
+    static let defaultApproachWarningTime: TimeInterval = 10.0 // Start showing approach indicators 10 seconds before
+    static let defaultTotalCastles = 10
+    
+    // Configurable parameters
+    private var castleInterval: TimeInterval = defaultCastleInterval
+    private var approachWarningTime: TimeInterval = defaultApproachWarningTime
+    private var totalCastles: Int = defaultTotalCastles
     
     // Properties
     weak var delegate: CastleManagerDelegate?
@@ -29,7 +34,7 @@ class CastleManager {
     private(set) var castlesReached: Int = 0
     private(set) var totalPlayTime: TimeInterval = 0
     private(set) var currentSessionTime: TimeInterval = 0
-    private(set) var timeToNextCastle: TimeInterval = castleInterval
+    private(set) var timeToNextCastle: TimeInterval = defaultCastleInterval
     private(set) var isApproachingCastle: Bool = false
     private(set) var hasReachedFinalCastle: Bool = false
     
@@ -42,6 +47,14 @@ class CastleManager {
         loadProgress()
     }
     
+    // Set custom level parameters
+    func setLevelParameters(totalCastles: Int, castleInterval: TimeInterval, approachWarningTime: TimeInterval = 10.0) {
+        self.totalCastles = totalCastles
+        self.castleInterval = castleInterval
+        self.approachWarningTime = approachWarningTime
+        self.timeToNextCastle = castleInterval
+    }
+    
     // MARK: - Public Methods
     
     func update(deltaTime: TimeInterval) {
@@ -51,18 +64,18 @@ class CastleManager {
         totalPlayTime += deltaTime
         
         // Calculate time to next castle
-        let timeInCurrentCastleJourney = currentSessionTime.truncatingRemainder(dividingBy: Self.castleInterval)
-        timeToNextCastle = Self.castleInterval - timeInCurrentCastleJourney
+        let timeInCurrentCastleJourney = currentSessionTime.truncatingRemainder(dividingBy: castleInterval)
+        timeToNextCastle = castleInterval - timeInCurrentCastleJourney
         
         // Check if we've reached a castle
-        let newCastle = Int(currentSessionTime / Self.castleInterval) + 1
-        if newCastle > currentCastle && currentCastle <= Self.totalCastles {
+        let newCastle = Int(currentSessionTime / castleInterval) + 1
+        if newCastle > currentCastle && currentCastle <= totalCastles {
             reachCastle(newCastle)
         }
         
         // Check if approaching castle
         let wasApproaching = isApproachingCastle
-        isApproachingCastle = timeToNextCastle <= Self.approachWarningTime && currentCastle <= Self.totalCastles
+        isApproachingCastle = timeToNextCastle <= approachWarningTime && currentCastle <= totalCastles
         
         if isApproachingCastle {
             delegate?.castleManager(self, isApproachingCastle: currentCastle, timeRemaining: timeToNextCastle)
@@ -79,7 +92,7 @@ class CastleManager {
         castlesReached = 0
         totalPlayTime = 0
         currentSessionTime = 0
-        timeToNextCastle = Self.castleInterval
+        timeToNextCastle = castleInterval
         isApproachingCastle = false
         hasReachedFinalCastle = false
         saveProgress()
@@ -94,9 +107,9 @@ class CastleManager {
         // Resume normal gameplay
         // The timer continues from where it left off
         // Make sure we don't immediately trigger another castle
-        if currentCastle <= Self.totalCastles {
+        if currentCastle <= totalCastles {
             // Adjust session time to be just after the last castle milestone
-            currentSessionTime = Double(currentCastle - 1) * Self.castleInterval + 0.1
+            currentSessionTime = Double(currentCastle - 1) * castleInterval + 0.1
         }
     }
     
@@ -106,12 +119,12 @@ class CastleManager {
         currentCastle = castle
         castlesReached = max(castlesReached, castle - 1) // castles reached is 0-indexed
         
-        if castle > Self.totalCastles {
+        if castle > totalCastles {
             hasReachedFinalCastle = true
         }
         
         saveProgress()
-        delegate?.castleManager(self, didReachCastle: min(castle, Self.totalCastles))
+        delegate?.castleManager(self, didReachCastle: min(castle, totalCastles))
     }
     
     private func loadProgress() {
@@ -129,7 +142,7 @@ class CastleManager {
     // MARK: - Utility Methods
     
     var progressPercentage: Float {
-        return Float(castlesReached) / Float(Self.totalCastles)
+        return Float(castlesReached) / Float(totalCastles)
     }
     
     var timeToNextCastleString: String {
@@ -141,10 +154,10 @@ class CastleManager {
     var currentCastleDescription: String {
         if hasReachedFinalCastle {
             return "Journey Complete!"
-        } else if currentCastle > Self.totalCastles {
+        } else if currentCastle > totalCastles {
             return "The End"
         } else {
-            return "Castle \(currentCastle) of \(Self.totalCastles)"
+            return "Castle \(currentCastle) of \(totalCastles)"
         }
     }
 }

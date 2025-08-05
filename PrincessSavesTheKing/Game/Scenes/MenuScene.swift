@@ -15,6 +15,10 @@ class MenuScene: SKScene {
     private var bestScoreLabel: SKLabelNode!
     
     override func didMove(to view: SKView) {
+        // Set accessibility identifier for the scene
+        self.accessibilityLabel = "MenuScene"
+        self.isAccessibilityElement = true
+        
         // Create gradient background
         createGradientBackground()
         setupUI()
@@ -53,6 +57,8 @@ class MenuScene: SKScene {
         titleLine1.fontSize = 48
         titleLine1.fontColor = .charcoal
         titleLine1.position = CGPoint(x: size.width / 2, y: size.height / 2 + 40)
+        titleLine1.accessibilityLabel = "Princess Saves"
+        titleLine1.isAccessibilityElement = true
         addChild(titleLine1)
         
         let titleLine2 = SKLabelNode(text: "the King")
@@ -60,6 +66,8 @@ class MenuScene: SKScene {
         titleLine2.fontSize = 48
         titleLine2.fontColor = .charcoal
         titleLine2.position = CGPoint(x: size.width / 2, y: size.height / 2 - 10)
+        titleLine2.accessibilityLabel = "the King"
+        titleLine2.isAccessibilityElement = true
         addChild(titleLine2)
         
         // Add a subtle shadow to the title for depth
@@ -86,6 +94,8 @@ class MenuScene: SKScene {
         bestScoreLabel.fontSize = 22
         bestScoreLabel.fontColor = .charcoal
         bestScoreLabel.position = CGPoint(x: size.width / 2, y: size.height / 2 - 80)
+        bestScoreLabel.accessibilityLabel = "BestScoreLabel"
+        bestScoreLabel.isAccessibilityElement = true
         addChild(bestScoreLabel)
         
         // Play Button - positioned lower
@@ -94,6 +104,8 @@ class MenuScene: SKScene {
         playButton.strokeColor = .pastelCoral
         playButton.position = CGPoint(x: size.width / 2, y: size.height / 2 - 140)
         playButton.name = "playButton"
+        playButton.accessibilityLabel = "PlayButton"
+        playButton.isAccessibilityElement = true
         
         let playLabel = SKLabelNode(text: "Play")
         playLabel.fontName = "Noteworthy-Bold"

@@ -98,7 +98,8 @@ class Princess: SKNode {
     private func setupPhysics() {
         // Create physics body on the container (self), not the sprite
         let physicsSize = CGSize(width: GameConstants.playerRadius * 2.4, height: GameConstants.playerRadius * 4.5)
-        // Center the physics body since anchor is at bottom
+        // Position physics body so its bottom edge aligns with the node's position
+        // Since we want the princess to stand on the ground, center should be at height/2
         let physicsCenter = CGPoint(x: 0, y: physicsSize.height / 2)
         physicsBody = SKPhysicsBody(rectangleOf: physicsSize, center: physicsCenter)
         physicsBody?.categoryBitMask = PhysicsCategory.player
@@ -106,6 +107,8 @@ class Princess: SKNode {
         physicsBody?.collisionBitMask = PhysicsCategory.ground
         physicsBody?.allowsRotation = false
         physicsBody?.restitution = 0
+        physicsBody?.friction = 0
+        physicsBody?.linearDamping = 0
     }
     
     private func setupTrail() {

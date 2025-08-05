@@ -12,6 +12,7 @@ struct PhysicsCategory {
     static let player: UInt32 = 0b1       // 1
     static let obstacle: UInt32 = 0b10    // 2
     static let ground: UInt32 = 0b100     // 4
+    static let star: UInt32 = 0b1000      // 8
 }
 
 struct GameConstants {

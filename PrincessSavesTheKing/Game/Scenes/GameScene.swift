@@ -28,6 +28,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
     private var lastMilestone: Int = 0
     private var isGamePaused = false
     
+    // Powerup state
+    private var isInvincible = false
+    private var invincibilityEndTime: TimeInterval = 0
+    private var hasSpawnedStar = false
+    private var starSpawnTime: TimeInterval = 0
+    private var currentStar: Star?
+    
     // Castle system
     private var castleManager: CastleManager!
     private var castleApproachIndicator: SKNode?
@@ -99,6 +106,7 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         princess = Princess()
         princess.position = CGPoint(x: frame.width * 0.15, y: GameConstants.groundY)
         princess.updateTrailTarget(self)
+        princess.physicsBody?.contactTestBitMask = PhysicsCategory.obstacle | PhysicsCategory.ground | PhysicsCategory.star
         addChild(princess)
         
         // Start in idle state until game begins
@@ -160,6 +168,13 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         currentSpawnInterval = GameConstants.initialSpawnInterval
         princess.isGrounded = true
         lastMilestone = 0
+        
+        // Reset powerup state
+        isInvincible = false
+        invincibilityEndTime = 0
+        hasSpawnedStar = false
+        starSpawnTime = TimeInterval.random(in: 10...20)
+        currentStar = nil
     }
     
     private func setupCastleManager() {
@@ -198,6 +213,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         // Update score
         currentScore = currentTime - gameStartTime
         scoreLabel.text = String(format: "%.1fs", currentScore)
+        
+        // Check for star spawn
+        if !hasSpawnedStar && currentScore >= starSpawnTime {
+            spawnStar()
+            hasSpawnedStar = true
+        }
+        
+        // Update invincibility
+        if isInvincible && currentTime >= invincibilityEndTime {
+            endInvincibility()
+        }
         
         // Update castle manager
         let frameDelta = 1.0 / 60.0 // Assuming 60 FPS
@@ -246,6 +272,17 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
             }
         }
         
+        // Move star if it exists
+        if let star = currentStar {
+            star.position.x -= currentSpeed * CGFloat(frameDuration)
+            
+            // Remove off-screen star
+            if star.position.x < -100 {
+                star.removeFromParent()
+                currentStar = nil
+            }
+        }
+        
         // Check input buffer
         if princess.isGrounded && (currentTime - jumpBufferTime) <= GameConstants.inputBufferTime {
             princess.jump()
@@ -263,6 +300,22 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
                 physicsBody.velocity.dx = 0
             }
         }
+    }
+    
+    private func spawnStar() {
+        let star = Star()
+        star.name = "star"
+        
+        // Position star so princess can jump and reach it
+        // Star should appear in the sky but low enough to be reachable
+        let jumpHeight = GameConstants.jumpImpulse * 0.8 // Approximate jump height
+        star.position = CGPoint(
+            x: frame.width + 100,
+            y: GameConstants.groundY + jumpHeight
+        )
+        
+        currentStar = star
+        addChild(star)
     }
     
     private func spawnObstacle() {
@@ -301,7 +354,16 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         if collision == PhysicsCategory.player | PhysicsCategory.ground {
             princess.land()
         } else if collision == PhysicsCategory.player | PhysicsCategory.obstacle {
-            gameOver()
+            if !isInvincible {
+                gameOver()
+            }
+        } else if collision == PhysicsCategory.player | PhysicsCategory.star {
+            // Collect star
+            if let star = currentStar {
+                star.collect()
+                currentStar = nil
+                startInvincibility()
+            }
         }
     }
     
@@ -561,5 +623,35 @@ class GameScene: SKScene, SKPhysicsContactDelegate, CastleManagerDelegate {
         
         let transition = SKTransition.fade(withDuration: 1.0)
         view?.presentScene(endingScene, transition: transition)
+    }
+    
+    // MARK: - Powerup Functions
+    
+    private func startInvincibility() {
+        isInvincible = true
+        invincibilityEndTime = CACurrentMediaTime() + 10.0 // 10 seconds of invincibility
+        
+        // Start flashing animation on princess
+        let fadeOut = SKAction.fadeAlpha(to: 0.4, duration: 0.2)
+        let fadeIn = SKAction.fadeAlpha(to: 1.0, duration: 0.2)
+        let flash = SKAction.sequence([fadeOut, fadeIn])
+        princess.run(SKAction.repeatForever(flash), withKey: "invincibilityFlash")
+        
+        // Play sound effect if available
+        // run(SKAction.playSoundFileNamed("powerup.wav", waitForCompletion: false))
+        
+        // Haptic feedback
+        if UserDefaults.standard.bool(forKey: "hapticsEnabled", defaultValue: true) {
+            HapticManager.shared.heavyImpact()
+        }
+    }
+    
+    private func endInvincibility() {
+        isInvincible = false
+        invincibilityEndTime = 0
+        
+        // Stop flashing animation
+        princess.removeAction(forKey: "invincibilityFlash")
+        princess.alpha = 1.0
     }
 }

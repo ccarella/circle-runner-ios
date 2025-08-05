@@ -34,8 +34,14 @@ class CastleScene: SKScene {
             SKAction.fadeIn(withDuration: 0.5),
             SKAction.wait(forDuration: 0.5),
             SKAction.run { [weak self] in
-                self?.frog.performGreeting()
-                self?.frog.showDialogue()
+                // Show frog introduction story
+                guard let self = self else { return }
+                let introText = StoryManager.shared.getFrogIntroduction(for: self.castleNumber)
+                self.showQuickStoryText(introText, at: .top, duration: 2.5)
+                
+                // Then show frog greeting
+                self.frog.performGreeting()
+                self.frog.showDialogue()
             }
         ]))
     }
